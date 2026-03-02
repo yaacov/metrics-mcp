@@ -19,8 +19,8 @@ var queryRangeCmd = &cobra.Command{
 Returns values over a time window (default: last 1 hour, 60s steps).
 
 Examples:
-  kubectl-metrics query-range --query "rate(http_requests_total[5m])" --start "-1h"
-  kubectl-metrics query-range --query "node_cpu_seconds_total" --start "-7d" --step "1h" --format json`,
+  kubectl metrics query-range --query "rate(http_requests_total[5m])" --start "-1h"
+  kubectl metrics query-range --query "node_cpu_seconds_total" --start "-7d" --step "1h" --format json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		promURL, rt := connection.ResolveConnection(ctx)

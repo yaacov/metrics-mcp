@@ -1,6 +1,6 @@
 # Authentication
 
-kubectl-metrics uses `k8s.io/client-go` for authentication, supporting all standard kubeconfig methods.
+kubectl metrics uses `k8s.io/client-go` for authentication, supporting all standard kubeconfig methods.
 
 ## Supported Auth Methods
 
@@ -48,16 +48,16 @@ Standard kubectl flags override kubeconfig values:
 
 ```bash
 # Explicit token
-kubectl-metrics discover --token sha256~xxxxx
+kubectl metrics discover --token sha256~xxxxx
 
 # Explicit server + token
-kubectl-metrics discover --server https://api.cluster.example.com:6443 --token sha256~xxxxx
+kubectl metrics discover --server https://api.cluster.example.com:6443 --token sha256~xxxxx
 
 # Skip auto-discovery, point directly at Prometheus
-kubectl-metrics discover --url https://prometheus.example.com
+kubectl metrics discover --url https://prometheus.example.com
 
 # Different kubeconfig or context
-kubectl-metrics discover --kubeconfig /path/to/config --context my-cluster
+kubectl metrics discover --kubeconfig /path/to/config --context my-cluster
 ```
 
 ## SSE Mode (MCP Server)
@@ -77,7 +77,7 @@ This allows a single MCP server instance to serve multiple users, each authentic
 Use klog verbosity to see which auth method is detected:
 
 ```bash
-kubectl-metrics discover --v=2
+kubectl metrics discover --v=2
 ```
 
 Output includes:

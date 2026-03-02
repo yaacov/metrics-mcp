@@ -26,7 +26,6 @@ jobs:
           fi
 
       - uses: actions/checkout@v5
-        if: steps.check_assets.outputs.assets_exist != 'true'
         with:
           fetch-depth: 0
 

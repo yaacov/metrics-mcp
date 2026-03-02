@@ -1,6 +1,6 @@
 # MCP Server
 
-kubectl-metrics includes an MCP (Model Context Protocol) server that exposes Prometheus/Thanos metrics to AI assistants.
+kubectl metrics includes an MCP (Model Context Protocol) server that exposes Prometheus/Thanos metrics to AI assistants.
 
 ## Modes
 
@@ -9,7 +9,7 @@ kubectl-metrics includes an MCP (Model Context Protocol) server that exposes Pro
 For local AI assistant integration (Claude Desktop, Cursor IDE).
 
 ```bash
-kubectl-metrics mcp-server
+kubectl metrics mcp-server
 ```
 
 ### SSE (HTTP)
@@ -17,8 +17,8 @@ kubectl-metrics mcp-server
 For network-accessible deployments (OpenShift Lightspeed, remote clients).
 
 ```bash
-kubectl-metrics mcp-server --sse --port 8080
-kubectl-metrics mcp-server --sse --port 8443 --cert-file tls.crt --key-file tls.key
+kubectl metrics mcp-server --sse --port 8080
+kubectl metrics mcp-server --sse --port 8443 --cert-file tls.crt --key-file tls.key
 ```
 
 **Flags:**
@@ -76,15 +76,15 @@ Get help for subcommands and PromQL syntax.
 ### Claude Desktop
 
 ```bash
-claude mcp add kubectl-metrics kubectl-metrics mcp-server
+claude mcp add kubectl-metrics kubectl metrics mcp-server
 ```
 
 ### Cursor IDE
 
 Settings → MCP → Add Server:
 - **Name:** kubectl-metrics
-- **Command:** kubectl-metrics
-- **Args:** mcp-server
+- **Command:** kubectl
+- **Args:** metrics mcp-server
 
 ### SSE Mode (remote)
 

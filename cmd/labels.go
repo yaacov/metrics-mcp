@@ -19,8 +19,8 @@ Without --metric: returns all known label names.
 With --metric: returns the label keys that appear on series for that metric.
 
 Examples:
-  kubectl-metrics labels
-  kubectl-metrics labels --metric container_network_receive_bytes_total`,
+  kubectl metrics labels
+  kubectl metrics labels --metric container_network_receive_bytes_total`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		promURL, rt := connection.ResolveConnection(ctx)

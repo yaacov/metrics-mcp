@@ -25,10 +25,10 @@ defaults. You can override the window with --start, --end, and --step flags.
 Instant presets can also be promoted to range queries by passing --start.
 
 Examples:
-  kubectl-metrics preset --name mtv_migration_status
-  kubectl-metrics preset --name mtv_migration_pod_rx --namespace mtv-test --format json
-  kubectl-metrics preset --name mtv_net_throughput_over_time
-  kubectl-metrics preset --name mtv_net_throughput_over_time --start "-2h" --step "30s"
+  kubectl metrics preset --name mtv_migration_status
+  kubectl metrics preset --name mtv_migration_pod_rx --namespace mtv-test --format json
+  kubectl metrics preset --name mtv_net_throughput_over_time
+  kubectl metrics preset --name mtv_net_throughput_over_time --start "-2h" --step "30s"
 
 Available presets:` + formatPresetList(),
 	RunE: func(cmd *cobra.Command, args []string) error {

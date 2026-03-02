@@ -18,9 +18,9 @@ var discoverCmd = &cobra.Command{
 Retrieves all metric names from Prometheus. Optionally filter by keyword or group by prefix.
 
 Examples:
-  kubectl-metrics discover
-  kubectl-metrics discover --keyword mtv
-  kubectl-metrics discover --keyword network --group-by-prefix`,
+  kubectl metrics discover
+  kubectl metrics discover --keyword mtv
+  kubectl metrics discover --keyword network --group-by-prefix`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		promURL, rt := connection.ResolveConnection(ctx)
