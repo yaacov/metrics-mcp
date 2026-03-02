@@ -2,24 +2,39 @@
 
 Query Prometheus / Thanos metrics on OpenShift clusters — as a CLI and an MCP server for AI assistants.
 
+## Installation
+
+Download or build the `kubectl-metrics` binary, then place it anywhere on your `PATH`:
+
+```bash
+# Build from source
+make build
+
+# Copy the binary to a directory in your PATH
+sudo cp kubectl-metrics /usr/local/bin/
+```
+
+Once `kubectl-metrics` is on your `PATH`, kubectl automatically discovers it as a plugin and you can run it as `kubectl metrics`:
+
+```bash
+kubectl metrics --help
+```
+
 ## Quick Start
 
 ```bash
-# Build
-make build
-
 # CLI usage (auto-discovers Prometheus from your kubeconfig)
-./kubectl-metrics discover
-./kubectl-metrics discover --keyword mtv
-./kubectl-metrics query --query "up"
-./kubectl-metrics query --query "sum(rate(http_requests_total[5m])) by (status)" --name http_rps
-./kubectl-metrics preset --name mtv_migration_status
+kubectl metrics discover
+kubectl metrics discover --keyword mtv
+kubectl metrics query --query "up"
+kubectl metrics query --query "sum(rate(http_requests_total[5m])) by (status)" --name http_rps
+kubectl metrics preset --name mtv_migration_status
 
 # MCP server (stdio, for Claude Desktop / Cursor IDE)
-./kubectl-metrics mcp-server
+kubectl metrics mcp-server
 
 # MCP server (SSE, for OpenShift Lightspeed)
-./kubectl-metrics mcp-server --sse --port 8080
+kubectl metrics mcp-server --sse --port 8080
 
 # MCP server from container image
 podman run --rm -p 8080:8080 \
@@ -33,12 +48,12 @@ podman run --rm -p 8080:8080 \
 **Claude Desktop:**
 
 ```bash
-claude mcp add kubectl-metrics kubectl-metrics mcp-server
+claude mcp add kubectl-metrics kubectl metrics mcp-server
 ```
 
 **Cursor IDE:**
 
-Settings → MCP → Add Server → Name: `kubectl-metrics`, Command: `kubectl-metrics`, Args: `mcp-server`
+Settings → MCP → Add Server → Name: `kubectl-metrics`, Command: `kubectl`, Args: `metrics mcp-server`
 
 ## Authentication
 

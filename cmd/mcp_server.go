@@ -49,7 +49,7 @@ SSE Mode Authentication (HTTP Headers):
 Quick Setup for AI Assistants:
 
 Claude Desktop: claude mcp add kubectl-metrics kubectl metrics mcp-server
-Cursor IDE: Settings → MCP → Add Server (Name: kubectl-metrics, Command: kubectl-metrics, Args: mcp-server)`,
+Cursor IDE: Settings → MCP → Add Server (Name: kubectl-metrics, Command: kubectl, Args: metrics mcp-server)`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()

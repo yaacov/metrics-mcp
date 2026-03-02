@@ -29,7 +29,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "kubectl-metrics",
 	Short: "Query Prometheus / Thanos metrics on OpenShift clusters",
-	Long: `kubectl-metrics queries Prometheus / Thanos metrics on OpenShift clusters.
+	Long: `Query Prometheus / Thanos metrics on OpenShift clusters.
 
 It provides a CLI and an MCP server, both backed by shared logic.
 

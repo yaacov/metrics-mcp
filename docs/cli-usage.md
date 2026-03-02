@@ -1,6 +1,6 @@
 # CLI Usage
 
-kubectl-metrics provides subcommands for querying Prometheus / Thanos metrics from the command line.
+kubectl metrics provides subcommands for querying Prometheus / Thanos metrics from the command line.
 
 ## Commands
 
@@ -10,13 +10,13 @@ List available Prometheus metric names.
 
 ```bash
 # List all metrics
-kubectl-metrics discover
+kubectl metrics discover
 
 # Filter by keyword
-kubectl-metrics discover --keyword mtv
+kubectl metrics discover --keyword mtv
 
 # Group by prefix with counts
-kubectl-metrics discover --keyword network --group-by-prefix
+kubectl metrics discover --keyword network --group-by-prefix
 ```
 
 ### query
@@ -24,9 +24,9 @@ kubectl-metrics discover --keyword network --group-by-prefix
 Execute an instant PromQL query (returns current values).
 
 ```bash
-kubectl-metrics query --query "up"
-kubectl-metrics query --query "sum(rate(http_requests_total[5m])) by (status)" --name http_rps
-kubectl-metrics query --query "node_memory_MemAvailable_bytes" --format json
+kubectl metrics query --query "up"
+kubectl metrics query --query "sum(rate(http_requests_total[5m])) by (status)" --name http_rps
+kubectl metrics query --query "node_memory_MemAvailable_bytes" --format json
 ```
 
 **Flags:**
@@ -44,9 +44,9 @@ kubectl-metrics query --query "node_memory_MemAvailable_bytes" --format json
 Execute a range PromQL query over a time window.
 
 ```bash
-kubectl-metrics query-range --query "rate(http_requests_total[5m])" --start "-1h"
-kubectl-metrics query-range --query "node_cpu_seconds_total" --start "-7d" --step "1h" --format json
-kubectl-metrics query-range --query "sum(rate(http_requests_total[5m])) by (status)" --start "-1h" --name http_rps
+kubectl metrics query-range --query "rate(http_requests_total[5m])" --start "-1h"
+kubectl metrics query-range --query "node_cpu_seconds_total" --start "-7d" --step "1h" --format json
+kubectl metrics query-range --query "sum(rate(http_requests_total[5m])) by (status)" --start "-1h" --name http_rps
 ```
 
 **Flags:**
@@ -68,10 +68,10 @@ List Prometheus label names, optionally scoped to a metric.
 
 ```bash
 # All label names
-kubectl-metrics labels
+kubectl metrics labels
 
 # Labels for a specific metric
-kubectl-metrics labels --metric container_network_receive_bytes_total
+kubectl metrics labels --metric container_network_receive_bytes_total
 ```
 
 ### preset
@@ -84,20 +84,20 @@ also be promoted to range queries by passing `--start`.
 
 ```bash
 # List presets (shown in --help)
-kubectl-metrics preset --help
+kubectl metrics preset --help
 
 # Run an instant preset
-kubectl-metrics preset --name mtv_migration_status
-kubectl-metrics preset --name mtv_migration_pod_rx --namespace mtv-test --format json
+kubectl metrics preset --name mtv_migration_status
+kubectl metrics preset --name mtv_migration_pod_rx --namespace mtv-test --format json
 
 # Run a range preset (uses built-in defaults)
-kubectl-metrics preset --name mtv_net_throughput_over_time
+kubectl metrics preset --name mtv_net_throughput_over_time
 
 # Override range defaults
-kubectl-metrics preset --name mtv_net_throughput_over_time --start "-2h" --step "30s"
+kubectl metrics preset --name mtv_net_throughput_over_time --start "-2h" --step "30s"
 
 # Group results by namespace
-kubectl-metrics preset --name mtv_migration_status --group-by namespace
+kubectl metrics preset --name mtv_migration_status --group-by namespace
 ```
 
 **Flags:**
@@ -169,7 +169,7 @@ When `--url` is not provided, the tool auto-discovers the Prometheus/Thanos URL:
 **Table example:**
 
 ```
-$ kubectl-metrics query --query 'sum(rate(http_requests_total[5m])) by (status)' --name http_rps
+$ kubectl metrics query --query 'sum(rate(http_requests_total[5m])) by (status)' --name http_rps
 METRIC    STATUS  TIMESTAMP            VALUE
 http_rps  200     2025-03-02 14:30:05  42.5
 http_rps  500     2025-03-02 14:30:05  1.2
@@ -178,7 +178,7 @@ http_rps  500     2025-03-02 14:30:05  1.2
 **Group-by example:**
 
 ```
-$ kubectl-metrics preset --name mtv_migration_status --group-by namespace
+$ kubectl metrics preset --name mtv_migration_status --group-by namespace
 --- namespace: mtv-prod ---
 METRIC                STATUS     TIMESTAMP            VALUE
 mtv_migration_status  succeeded  2025-03-02 14:30:05  12

@@ -15,7 +15,7 @@ import (
 // For range presets, start/end/step override the preset defaults when non-empty.
 func Preset(ctx context.Context, client *prometheus.Client, name, namespace, start, end, step, format string, opts ptable.Options) (string, error) {
 	if name == "" {
-		return "Missing required flag 'name'. Use 'kubectl-metrics preset --help' to list available presets.", nil
+		return "Missing required flag 'name'. Use 'kubectl metrics preset --help' to list available presets.", nil
 	}
 	p, ok := presets.GetPreset(name, namespace)
 	if !ok {
