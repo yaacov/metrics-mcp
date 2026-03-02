@@ -1,0 +1,22 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: kubectl-metrics-mcp-server
+  namespace: openshift-monitoring
+  labels:
+    app.kubernetes.io/name: kubectl-metrics-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kubectl-metrics
+spec:
+  to:
+    kind: Service
+    name: kubectl-metrics-mcp-server
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    # Edge termination: TLS from client → router (with route cert),
+    # then HTTP from router → pod
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

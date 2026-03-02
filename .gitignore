@@ -1,0 +1,27 @@
+# Binary
+kubectl-metrics
+kubectl-metrics-*-amd64
+kubectl-metrics-*-arm64
+kubectl-metrics-*-amd64.exe
+
+# Release archives
+kubectl-metrics-*.tar.gz
+kubectl-metrics-*.zip
+kubectl-metrics-*.sha256sum
+
+# Vendor directory
+vendor/
+
+# Test artifacts
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
