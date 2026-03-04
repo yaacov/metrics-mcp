@@ -54,13 +54,17 @@ func registerTools(server *mcpsdk.Server, capturedHeaders http.Header) {
 		Description: `Query Prometheus / Thanos metrics. Use metrics_help for flag details and PromQL reference.
 
 Subcommands (pass as "command"):
-  query        Instant PromQL query (flags: query, format, name, local_time, group_by)
-  query_range  Range PromQL query over a time window (flags: query, start, end, step, format, name, local_time, group_by)
+  query        Instant PromQL query (flags: query, format, name, local_time, group_by, no_pivot, selector)
+  query_range  Range PromQL query over a time window (flags: query, start, end, step, format, name, local_time, group_by, no_pivot, selector)
   discover     List available metric names (flags: keyword, group_by_prefix)
   labels       List labels or label sets for a metric (flags: metric)
-  preset       Run a pre-configured named query (flags: name, namespace, start, end, step, format, local_time, group_by)
+  preset       Run a pre-configured named query (flags: name, namespace, start, end, step, format, local_time, group_by, no_pivot, selector)
                Some presets are [range] type with default time windows. Pass start/end/step to override defaults
                or to promote an [instant] preset to a range query.
+               Range queries use a pivot table by default (one column per label combination). Set no_pivot: true
+               to revert to the traditional row-per-sample format.
+               Use selector to filter results by labels post-query (e.g. "namespace=prod,pod=~nginx.*").
+               Supported operators: = (equal), != (not equal), =~ (regex), !~ (negative regex).
 
 Examples:
   {command: "query", flags: {query: "up"}}
@@ -69,7 +73,8 @@ Examples:
   {command: "labels", flags: {metric: "container_network_receive_bytes_total"}}
   {command: "preset", flags: {name: "mtv_migration_status", namespace: "mtv-test", group_by: "namespace"}}
   {command: "preset", flags: {name: "mtv_net_throughput_over_time"}}
-  {command: "preset", flags: {name: "mtv_net_throughput_over_time", start: "-2h", step: "30s"}}`,
+  {command: "preset", flags: {name: "mtv_net_throughput_over_time", start: "-2h", step: "30s"}}
+  {command: "query", flags: {query: "up", selector: "namespace=prod,job=~prom.*"}}`,
 	}, wrapWithHeaders(handleMetricsRead, capturedHeaders))
 
 	// ---- metrics_help ----
@@ -114,13 +119,15 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 		MetricName: metrics.FlagStr(flags, "name"),
 		LocalTime:  metrics.FlagBool(flags, "local_time"),
 		GroupBy:    metrics.FlagStr(flags, "group_by"),
+		NoPivot:    metrics.FlagBool(flags, "no_pivot"),
+		Selector:   metrics.FlagStr(flags, "selector"),
 	}
 
 	switch command {
 	case "query":
 		result, err = metrics.Query(ctx, client,
 			metrics.FlagStr(flags, "query"),
-			metrics.FlagStr(flags, "format"),
+			metrics.FlagStr(flags, "output"),
 			tableOpts)
 	case "query_range":
 		result, err = metrics.QueryRange(ctx, client,
@@ -128,7 +135,7 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 			metrics.FlagStr(flags, "start"),
 			metrics.FlagStr(flags, "end"),
 			metrics.FlagStr(flags, "step"),
-			metrics.FlagStr(flags, "format"),
+			metrics.FlagStr(flags, "output"),
 			tableOpts)
 	case "discover":
 		result, err = metrics.Discover(ctx, client,
@@ -143,7 +150,7 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 			metrics.FlagStr(flags, "start"),
 			metrics.FlagStr(flags, "end"),
 			metrics.FlagStr(flags, "step"),
-			metrics.FlagStr(flags, "format"),
+			metrics.FlagStr(flags, "output"),
 			tableOpts)
 	default:
 		return textResult(fmt.Sprintf("Unknown command %q. Available: query, query_range, discover, labels, preset.\nCall metrics_help(\"%s\") for details.", command, command)), struct{}{}, nil

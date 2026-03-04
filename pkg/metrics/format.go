@@ -13,7 +13,7 @@ import (
 // FormatResult formats a Prometheus API response in the given format (table, json, raw).
 func FormatResult(data map[string]interface{}, format string, opts ptable.Options) string {
 	if format == "" {
-		format = "table"
+		format = "markdown"
 	}
 	if format == "raw" {
 		b, _ := json.MarshalIndent(data, "", "  ")

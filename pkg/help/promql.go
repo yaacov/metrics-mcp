@@ -18,30 +18,42 @@ func GenerateHelp(command string) string {
 Returns the current value of the expression at a single point in time.
 
 Flags:
-  query   (required)  PromQL expression (e.g. "up", "node_cpu_seconds_total")
-  format  (optional)  Output format: table (default), markdown, json, raw
+  query     (required)  PromQL expression (e.g. "up", "node_cpu_seconds_total")
+  output    (optional)  Output format: markdown (default), table, json, raw
+  no_pivot  (optional)  Disable pivot table layout for range results (default: false)
+  selector  (optional)  Label selector to filter results post-query (e.g. "namespace=prod,pod=~nginx.*")
+                         Operators: = (equal), != (not equal), =~ (regex match), !~ (negative regex)
 
 Examples:
   {command: "query", flags: {query: "up"}}
-  {command: "query", flags: {query: "sum(rate(http_requests_total[5m])) by (status)", format: "json"}}
+  {command: "query", flags: {query: "up", selector: "namespace=prod"}}
+  {command: "query", flags: {query: "sum(rate(http_requests_total[5m])) by (status)", output: "json"}}
   {command: "query", flags: {query: "node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100"}}`
 
 	case "query_range":
 		return `metrics_read "query_range" — Execute a range PromQL query
 
 Returns values over a time window (default: last 1 hour, 60s steps).
+Range queries use a pivot table by default (one column per label combination,
+one row per timestamp). Set no_pivot: true to revert to the traditional
+row-per-sample format.
 
 Flags:
-  query   (required)  PromQL expression
-  start   (optional)  Start time: ISO-8601, Unix epoch, or relative offset (default: -1h)
-                       Relative offsets: -30m, -1h, -7d, -2w
-  end     (optional)  End time: same formats as start (default: now)
-  step    (optional)  Step interval (default: 60s). Use "15s", "5m", "1h", etc.
-  format  (optional)  Output format: table (default), markdown, json, raw
+  query     (required)  PromQL expression
+  start     (optional)  Start time: ISO-8601, Unix epoch, or relative offset (default: -1h)
+                         Relative offsets: -30m, -1h, -7d, -2w
+  end       (optional)  End time: same formats as start (default: now)
+  step      (optional)  Step interval (default: 60s). Use "15s", "5m", "1h", etc.
+  output    (optional)  Output format: markdown (default), table, json, raw
+  no_pivot  (optional)  Disable pivot table layout (default: false)
+  selector  (optional)  Label selector to filter results post-query (e.g. "namespace=prod,pod=~nginx.*")
+                         Operators: = (equal), != (not equal), =~ (regex match), !~ (negative regex)
 
 Examples:
   {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h"}}
-  {command: "query_range", flags: {query: "node_cpu_seconds_total", start: "-7d", step: "1h", format: "json"}}`
+  {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", selector: "status=200"}}
+  {command: "query_range", flags: {query: "node_cpu_seconds_total", start: "-7d", step: "1h", output: "json"}}
+  {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", no_pivot: true}}`
 
 	case "discover":
 		return `metrics_read "discover" — List available Prometheus metric names
@@ -80,6 +92,8 @@ Examples:
 			"Presets marked [range] execute a range query over a time window with sensible",
 			"defaults. You can override the window with start, end, and step flags.",
 			"Instant presets can also be promoted to range queries by passing start.",
+			"Range queries use a pivot table by default (one column per label combination).",
+			"Set no_pivot: true to revert to the traditional row-per-sample format.",
 			"",
 			"Flags:",
 			"  name       (required)  Preset name (see list below)",
@@ -88,7 +102,10 @@ Examples:
 			"                          Overrides preset default for [range] presets; promotes [instant] presets to range.",
 			"  end        (optional)  End time: same formats as start (default: now)",
 			"  step       (optional)  Step interval (e.g. 15s, 5m, 1h). Overrides preset default.",
-			"  format     (optional)  Output format: table (default), markdown, json, raw",
+			"  output     (optional)  Output format: markdown (default), table, json, raw",
+			"  no_pivot   (optional)  Disable pivot table layout (default: false)",
+			`  selector   (optional)  Label selector to filter results post-query (e.g. "namespace=prod,pod=~nginx.*")`,
+			`                          Operators: = (equal), != (not equal), =~ (regex match), !~ (negative regex)`,
 			"",
 			"Available presets:",
 		}
@@ -97,7 +114,8 @@ Examples:
 		}
 		lines = append(lines, "", "Examples:",
 			`  {command: "preset", flags: {name: "mtv_migration_status"}}`,
-			`  {command: "preset", flags: {name: "mtv_migration_pod_rx", namespace: "mtv-test", format: "json"}}`,
+			`  {command: "preset", flags: {name: "mtv_migration_pod_rx", namespace: "mtv-test", output: "json"}}`,
+			`  {command: "preset", flags: {name: "mtv_migration_pod_rx", selector: "pod=~virt-v2v.*"}}`,
 			`  {command: "preset", flags: {name: "mtv_net_throughput_over_time"}}`,
 			`  {command: "preset", flags: {name: "mtv_net_throughput_over_time", start: "-2h", step: "30s"}}`,
 		)
@@ -164,11 +182,11 @@ TIME UNITS
 			"metrics_read — Query Prometheus / Thanos metrics",
 			"",
 			"SUBCOMMANDS (pass as \"command\"):",
-			"  query        Instant PromQL query                    (flags: query, format)",
-			"  query_range  Range query over a time window          (flags: query, start, end, step, format)",
+			"  query        Instant PromQL query                    (flags: query, output, no_pivot, selector)",
+			"  query_range  Range query over a time window          (flags: query, start, end, step, output, no_pivot, selector)",
 			"  discover     List available metric names              (flags: keyword, group_by_prefix)",
 			"  labels       List labels or label sets for a metric  (flags: metric)",
-			"  preset       Run a pre-configured named query        (flags: name, namespace, start, end, step, format)",
+			"  preset       Run a pre-configured named query        (flags: name, namespace, start, end, step, output, no_pivot, selector)",
 			"",
 			"Call metrics_help(\"<command>\") for detailed flag descriptions and examples.",
 			"Call metrics_help(\"promql\") for PromQL query language reference.",

@@ -19,5 +19,9 @@ func QueryRange(ctx context.Context, client *prometheus.Client, promql, start, e
 	if err != nil {
 		return "", err
 	}
+	data, err = FilterData(data, opts.Selector)
+	if err != nil {
+		return "", err
+	}
 	return FormatResult(data, format, opts), nil
 }

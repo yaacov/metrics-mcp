@@ -41,13 +41,15 @@ Query Prometheus/Thanos metrics. Subcommands:
 
 | Command | Description | Key Flags |
 |---------|-------------|-----------|
-| `query` | Instant PromQL query | `query`, `format`, `name`, `local_time`, `group_by` |
-| `query_range` | Range query over time window | `query`, `start`, `end`, `step`, `format`, `name`, `local_time`, `group_by` |
+| `query` | Instant PromQL query | `query`, `format`, `name`, `local_time`, `group_by`, `no_pivot`, `selector` |
+| `query_range` | Range query over time window | `query`, `start`, `end`, `step`, `format`, `name`, `local_time`, `group_by`, `no_pivot`, `selector` |
 | `discover` | List metric names | `keyword`, `group_by_prefix` |
 | `labels` | List labels for a metric | `metric` |
-| `preset` | Run a named preset query | `name`, `namespace`, `start`, `end`, `step`, `format`, `local_time`, `group_by` |
+| `preset` | Run a named preset query | `name`, `namespace`, `start`, `end`, `step`, `format`, `local_time`, `group_by`, `no_pivot`, `selector` |
 
-The optional `name` flag sets a metric name for the first table column — useful for aggregate queries that don't carry a `__name__` label. Set `local_time` to `true` for local-timezone timestamps. Use `group_by` to split results into sub-tables by a label (e.g. `"namespace"`).
+The optional `name` flag sets a metric name for the first table column — useful for aggregate queries that don't carry a `__name__` label. Set `local_time` to `true` for local-timezone timestamps. Use `group_by` to split results into sub-tables by a label (e.g. `"namespace"`). Use `selector` to filter results by labels post-query (e.g. `"namespace=prod,pod=~nginx.*"`); supported operators: `=` (equal), `!=` (not equal), `=~` (regex), `!~` (negative regex).
+
+Range queries default to a pivot table layout (one column per label combination, one row per timestamp). Set `no_pivot: true` to use the traditional row-per-sample layout.
 
 Presets marked `[range]` run as range queries with built-in default time windows. Pass `start`/`end`/`step` to override defaults, or pass `start` on an `[instant]` preset to promote it to a range query.
 
@@ -60,6 +62,7 @@ Presets marked `[range]` run as range queries with built-in default time windows
 {"command": "preset", "flags": {"name": "mtv_migration_status", "namespace": "mtv-test"}}
 {"command": "preset", "flags": {"name": "mtv_net_throughput_over_time"}}
 {"command": "preset", "flags": {"name": "mtv_net_throughput_over_time", "start": "-2h", "step": "30s"}}
+{"command": "query", "flags": {"query": "up", "selector": "namespace=prod,job=~prom.*"}}
 ```
 
 ### metrics_help

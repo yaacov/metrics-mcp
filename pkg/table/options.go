@@ -17,6 +17,16 @@ type Options struct {
 
 	// Markdown renders the table in GitHub-compatible Markdown format.
 	Markdown bool
+
+	// NoPivot disables the default pivot layout for matrix results.
+	// When false (default), range queries render one column per label
+	// combination and one row per timestamp. When true, the traditional
+	// row-per-sample format is used.
+	NoPivot bool
+
+	// Selector is a Kubernetes-style label selector that filters results
+	// post-query (e.g. "namespace=prod,pod=~nginx.*"). Empty means no filtering.
+	Selector string
 }
 
 const dateFormat = "2006-01-02 15:04:05"

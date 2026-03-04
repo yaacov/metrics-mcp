@@ -25,8 +25,9 @@ Execute an instant PromQL query (returns current values).
 
 ```bash
 kubectl metrics query --query "up"
+kubectl metrics query --query "up" --selector "namespace=prod"
 kubectl metrics query --query "sum(rate(http_requests_total[5m])) by (status)" --name http_rps
-kubectl metrics query --query "node_memory_MemAvailable_bytes" --format json
+kubectl metrics query --query "node_memory_MemAvailable_bytes" --output json
 ```
 
 **Flags:**
@@ -34,10 +35,12 @@ kubectl metrics query --query "node_memory_MemAvailable_bytes" --format json
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--query` | (required) | PromQL expression |
-| `--format` | `table` | Output format: `table`, `markdown`, `json`, `raw` |
+| `--output` / `-o` | `markdown` | Output format: `table`, `markdown`, `json`, `raw` |
 | `--name` | | Metric name for the first table column (useful for aggregate queries that lack `__name__`) |
 | `--local-time` | `false` | Display timestamps in local timezone instead of UTC |
 | `--group-by` | | Label name to split results into sub-tables (e.g. `namespace`, `pod`) |
+| `--no-pivot` | `false` | Disable pivot table layout for range results (show one row per sample instead) |
+| `--selector` / `-l` | | Label selector to filter results post-query (e.g. `"namespace=prod,pod=~nginx.*"`). Operators: `=`, `!=`, `=~`, `!~` |
 
 ### query-range
 
@@ -45,7 +48,8 @@ Execute a range PromQL query over a time window.
 
 ```bash
 kubectl metrics query-range --query "rate(http_requests_total[5m])" --start "-1h"
-kubectl metrics query-range --query "node_cpu_seconds_total" --start "-7d" --step "1h" --format json
+kubectl metrics query-range --query "rate(http_requests_total[5m])" --start "-1h" --selector "status=200"
+kubectl metrics query-range --query "node_cpu_seconds_total" --start "-7d" --step "1h" --output json
 kubectl metrics query-range --query "sum(rate(http_requests_total[5m])) by (status)" --start "-1h" --name http_rps
 ```
 
@@ -57,10 +61,12 @@ kubectl metrics query-range --query "sum(rate(http_requests_total[5m])) by (stat
 | `--start` | `-1h` | Start time: ISO-8601, Unix epoch, or relative (`-1h`, `-7d`) |
 | `--end` | `now` | End time (same formats) |
 | `--step` | `60s` | Query resolution step |
-| `--format` | `table` | Output format: `table`, `markdown`, `json`, `raw` |
+| `--output` / `-o` | `markdown` | Output format: `table`, `markdown`, `json`, `raw` |
 | `--name` | | Metric name for the first table column (useful for aggregate queries that lack `__name__`) |
 | `--local-time` | `false` | Display timestamps in local timezone instead of UTC |
 | `--group-by` | | Label name to split results into sub-tables (e.g. `namespace`, `pod`) |
+| `--no-pivot` | `false` | Disable pivot table layout (show one row per sample instead) |
+| `--selector` / `-l` | | Label selector to filter results post-query (e.g. `"namespace=prod,pod=~nginx.*"`). Operators: `=`, `!=`, `=~`, `!~` |
 
 ### labels
 
@@ -88,7 +94,10 @@ kubectl metrics preset --help
 
 # Run an instant preset
 kubectl metrics preset --name mtv_migration_status
-kubectl metrics preset --name mtv_migration_pod_rx --namespace mtv-test --format json
+kubectl metrics preset --name mtv_migration_pod_rx --namespace mtv-test --output json
+
+# Filter preset results by label
+kubectl metrics preset --name mtv_migration_pod_rx --selector "pod=~virt-v2v.*"
 
 # Run a range preset (uses built-in defaults)
 kubectl metrics preset --name mtv_net_throughput_over_time
@@ -109,9 +118,11 @@ kubectl metrics preset --name mtv_migration_status --group-by namespace
 | `--start` | | Start time (overrides preset default for range; promotes instant to range) |
 | `--end` | `now` | End time |
 | `--step` | | Step interval (overrides preset default) |
-| `--format` | `table` | Output format: `table`, `markdown`, `json`, `raw` |
+| `--output` / `-o` | `markdown` | Output format: `table`, `markdown`, `json`, `raw` |
 | `--local-time` | `false` | Display timestamps in local timezone instead of UTC |
 | `--group-by` | | Label name to split results into sub-tables |
+| `--no-pivot` | `false` | Disable pivot table layout for range results (show one row per sample instead) |
+| `--selector` / `-l` | | Label selector to filter results post-query (e.g. `"namespace=prod,pod=~nginx.*"`). Operators: `=`, `!=`, `=~`, `!~` |
 
 **Available presets:**
 
@@ -161,12 +172,12 @@ When `--url` is not provided, the tool auto-discovers the Prometheus/Thanos URL:
 
 ## Output Formats
 
-- **table** (default) — Pretty-printed columns with aligned headers, one column per label, human-readable timestamps (UTC by default), and SI-formatted values
-- **markdown** — GitHub-compatible Markdown table (same columns as `table`)
+- **markdown** (default) — GitHub-compatible Markdown table with human-readable timestamps (UTC by default) and SI-formatted values. Range queries use a **pivot layout** by default (one column per label combination, one row per timestamp).
+- **table** — Pretty-printed columns with aligned headers (same columns as `markdown`)
 - **json** — JSON array of result entries
 - **raw** — Full Prometheus API response as JSON
 
-**Table example:**
+**Instant query example:**
 
 ```
 $ kubectl metrics query --query 'sum(rate(http_requests_total[5m])) by (status)' --name http_rps
@@ -175,10 +186,47 @@ http_rps  200     2025-03-02 14:30:05  42.5
 http_rps  500     2025-03-02 14:30:05  1.2
 ```
 
-**Group-by example:**
+**Range query example (pivot — default):**
+
+```
+$ kubectl metrics query-range --query 'sum(rate(http_requests_total[5m])) by (status)' --start "-1h" --name http_rps
+TIMESTAMP            200   500
+2025-03-02 13:30:05  40.1  0.8
+2025-03-02 13:31:05  41.3  1
+2025-03-02 13:32:05  42.5  1.2
+```
+
+**Range query example (--no-pivot):**
+
+```
+$ kubectl metrics query-range --query 'sum(rate(http_requests_total[5m])) by (status)' --start "-1h" --name http_rps --no-pivot
+METRIC    STATUS  TIMESTAMP            VALUE
+http_rps  200     2025-03-02 13:30:05  40.1
+http_rps  200     2025-03-02 13:31:05  41.3
+http_rps  200     2025-03-02 13:32:05  42.5
+---
+http_rps  500     2025-03-02 13:30:05  0.8
+http_rps  500     2025-03-02 13:31:05  1
+http_rps  500     2025-03-02 13:32:05  1.2
+```
+
+**Group-by with pivot example:**
 
 ```
 $ kubectl metrics preset --name mtv_migration_status --group-by namespace
+--- namespace: mtv-prod ---
+TIMESTAMP            succeeded  running
+2025-03-02 14:30:05  12         3
+
+--- namespace: mtv-test ---
+TIMESTAMP            succeeded  failed
+2025-03-02 14:30:05  5          1
+```
+
+**Group-by example (--no-pivot):**
+
+```
+$ kubectl metrics preset --name mtv_migration_status --group-by namespace --no-pivot
 --- namespace: mtv-prod ---
 METRIC                STATUS     TIMESTAMP            VALUE
 mtv_migration_status  succeeded  2025-03-02 14:30:05  12

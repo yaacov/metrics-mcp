@@ -16,5 +16,9 @@ func Query(ctx context.Context, client *prometheus.Client, promql, format string
 	if err != nil {
 		return "", err
 	}
+	data, err = FilterData(data, opts.Selector)
+	if err != nil {
+		return "", err
+	}
 	return FormatResult(data, format, opts), nil
 }

@@ -49,6 +49,10 @@ func Preset(ctx context.Context, client *prometheus.Client, name, namespace, sta
 	if err != nil {
 		return "", err
 	}
+	data, err = FilterData(data, opts.Selector)
+	if err != nil {
+		return "", err
+	}
 
 	if format == "json" || format == "raw" {
 		envelope := map[string]interface{}{
