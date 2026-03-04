@@ -1,6 +1,8 @@
 package presets
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -98,18 +100,89 @@ func TestGetPreset_RangePresetWithNamespace(t *testing.T) {
 	}
 }
 
-func assertContains(t *testing.T, haystack, needle string) {
-	t.Helper()
-	if idx := indexOf(haystack, needle); idx < 0 {
-		t.Fatalf("expected query to contain %q\ngot: %s", needle, haystack)
+// TestGetPreset_AllPresets_NamespaceInjection verifies that every registered
+// preset produces a structurally valid query when a namespace is applied.
+func TestGetPreset_AllPresets_NamespaceInjection(t *testing.T) {
+	const ns = "test-ns"
+	nsSelector := fmt.Sprintf(`namespace="%s"`, ns)
+
+	for _, orig := range Presets {
+		t.Run(orig.Name, func(t *testing.T) {
+			p, ok := GetPreset(orig.Name, ns)
+			if !ok {
+				t.Fatal("preset should exist")
+			}
+
+			// The namespace selector must appear in the result.
+			if !strings.Contains(p.Query, nsSelector) {
+				t.Fatalf("namespace selector missing from query:\n  %s", p.Query)
+			}
+
+			// Braces must be balanced.
+			if open, close := strings.Count(p.Query, "{"), strings.Count(p.Query, "}"); open != close {
+				t.Fatalf("unbalanced braces (%d open, %d close) in query:\n  %s", open, close, p.Query)
+			}
+
+			// Parentheses must be balanced.
+			if open, close := strings.Count(p.Query, "("), strings.Count(p.Query, ")"); open != close {
+				t.Fatalf("unbalanced parens (%d open, %d close) in query:\n  %s", open, close, p.Query)
+			}
+
+			// The namespace selector must always be inside {...}, never
+			// appended bare at the end of a complex expression.
+			// A complex expression is anything that isn't just a metric name.
+			isComplex := strings.ContainsAny(orig.Query, "()+")
+			if isComplex {
+				// For complex queries the result must NOT end with {namespace="..."}.
+				suffix := fmt.Sprintf(`{namespace="%s"}`, ns)
+				if strings.HasSuffix(p.Query, suffix) {
+					t.Fatalf("namespace selector appended at end of complex expression:\n  %s", p.Query)
+				}
+			}
+
+			// Every metric selector {...} in the query should contain the namespace filter.
+			// Extract all {...} blocks and verify each one has namespace.
+			for i := 0; i < len(p.Query); i++ {
+				if p.Query[i] == '{' {
+					depth := 1
+					j := i + 1
+					for j < len(p.Query) && depth > 0 {
+						if p.Query[j] == '{' {
+							depth++
+						} else if p.Query[j] == '}' {
+							depth--
+						}
+						j++
+					}
+					block := p.Query[i:j]
+					if !strings.Contains(block, nsSelector) {
+						t.Fatalf("selector block without namespace: %s\nin query: %s", block, p.Query)
+					}
+					i = j - 1
+				}
+			}
+		})
 	}
 }
 
-func indexOf(s, sub string) int {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
+// TestGetPreset_AllPresets_NoNamespace verifies queries are unchanged without namespace.
+func TestGetPreset_AllPresets_NoNamespace(t *testing.T) {
+	for _, orig := range Presets {
+		t.Run(orig.Name, func(t *testing.T) {
+			p, ok := GetPreset(orig.Name, "")
+			if !ok {
+				t.Fatal("preset should exist")
+			}
+			if p.Query != orig.Query {
+				t.Fatalf("query changed without namespace:\n  want: %s\n  got:  %s", orig.Query, p.Query)
+			}
+		})
 	}
-	return -1
+}
+
+func assertContains(t *testing.T, haystack, needle string) {
+	t.Helper()
+	if !strings.Contains(haystack, needle) {
+		t.Fatalf("expected query to contain %q\ngot: %s", needle, haystack)
+	}
 }
