@@ -20,7 +20,7 @@ Returns the current value of the expression at a single point in time.
 
 Examples:
   kubectl metrics query --query "up"
-  kubectl metrics query --query "sum(rate(http_requests_total[5m])) by (status)" --format json
+  kubectl metrics query --query "sum(rate(http_requests_total[5m])) by (status)" --output json
   kubectl metrics query --query "node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
@@ -30,15 +30,19 @@ Examples:
 		}
 
 		query, _ := cmd.Flags().GetString("query")
-		format, _ := cmd.Flags().GetString("format")
+		format, _ := cmd.Flags().GetString("output")
 		name, _ := cmd.Flags().GetString("name")
 		localTime, _ := cmd.Flags().GetBool("local-time")
 		groupBy, _ := cmd.Flags().GetString("group-by")
+		noPivot, _ := cmd.Flags().GetBool("no-pivot")
+		selector, _ := cmd.Flags().GetString("selector")
 
 		opts := ptable.Options{
 			MetricName: name,
 			LocalTime:  localTime,
 			GroupBy:    groupBy,
+			NoPivot:    noPivot,
+			Selector:   selector,
 		}
 		client := prometheus.NewClient(promURL, rt)
 		result, err := metrics.Query(ctx, client, query, format, opts)
@@ -52,10 +56,12 @@ Examples:
 
 func init() {
 	queryCmd.Flags().String("query", "", "PromQL expression (required)")
-	queryCmd.Flags().String("format", "table", "Output format: table, markdown, json, raw")
+	queryCmd.Flags().StringP("output", "o", "markdown", "Output format: table, markdown, json, raw")
 	queryCmd.Flags().String("name", "", "Metric name to display in the first table column (optional)")
 	queryCmd.Flags().Bool("local-time", false, "Display timestamps in local timezone instead of UTC")
 	queryCmd.Flags().String("group-by", "", "Label name to split results into sub-tables (e.g. namespace, pod)")
+	queryCmd.Flags().Bool("no-pivot", false, "Disable pivot table layout for range results (show one row per sample instead)")
+	queryCmd.Flags().StringP("selector", "l", "", `Label selector to filter results (e.g. "namespace=prod,pod=~nginx.*")`)
 	_ = queryCmd.MarkFlagRequired("query")
 	rootCmd.AddCommand(queryCmd)
 }

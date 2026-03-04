@@ -26,7 +26,7 @@ Instant presets can also be promoted to range queries by passing --start.
 
 Examples:
   kubectl metrics preset --name mtv_migration_status
-  kubectl metrics preset --name mtv_migration_pod_rx --namespace mtv-test --format json
+  kubectl metrics preset --name mtv_migration_pod_rx --namespace mtv-test --output json
   kubectl metrics preset --name mtv_net_throughput_over_time
   kubectl metrics preset --name mtv_net_throughput_over_time --start "-2h" --step "30s"
 
@@ -43,13 +43,17 @@ Available presets:` + formatPresetList(),
 		start, _ := cmd.Flags().GetString("start")
 		end, _ := cmd.Flags().GetString("end")
 		step, _ := cmd.Flags().GetString("step")
-		format, _ := cmd.Flags().GetString("format")
+		format, _ := cmd.Flags().GetString("output")
 		localTime, _ := cmd.Flags().GetBool("local-time")
 		groupBy, _ := cmd.Flags().GetString("group-by")
+		noPivot, _ := cmd.Flags().GetBool("no-pivot")
+		selector, _ := cmd.Flags().GetString("selector")
 
 		opts := ptable.Options{
 			LocalTime: localTime,
 			GroupBy:   groupBy,
+			NoPivot:   noPivot,
+			Selector:  selector,
 		}
 		client := prometheus.NewClient(promURL, rt)
 		result, err := metrics.Preset(ctx, client, name, namespace, start, end, step, format, opts)
@@ -75,9 +79,11 @@ func init() {
 	presetCmd.Flags().String("start", "", "Start time: ISO-8601, Unix epoch, or relative offset (e.g. -1h). Overrides preset default for range presets; promotes instant presets to range.")
 	presetCmd.Flags().String("end", "", "End time: same formats as start (default: now)")
 	presetCmd.Flags().String("step", "", "Step interval (e.g. 15s, 5m, 1h). Overrides preset default.")
-	presetCmd.Flags().String("format", "table", "Output format: table, markdown, json, raw")
+	presetCmd.Flags().StringP("output", "o", "markdown", "Output format: table, markdown, json, raw")
 	presetCmd.Flags().Bool("local-time", false, "Display timestamps in local timezone instead of UTC")
 	presetCmd.Flags().String("group-by", "", "Label name to split results into sub-tables (e.g. namespace, pod)")
+	presetCmd.Flags().Bool("no-pivot", false, "Disable pivot table layout for range results (show one row per sample instead)")
+	presetCmd.Flags().StringP("selector", "l", "", `Label selector to filter results (e.g. "namespace=prod,pod=~nginx.*")`)
 	_ = presetCmd.MarkFlagRequired("name")
 	rootCmd.AddCommand(presetCmd)
 }

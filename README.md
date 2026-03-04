@@ -28,6 +28,7 @@ kubectl metrics discover
 kubectl metrics discover --keyword mtv
 kubectl metrics query --query "up"
 kubectl metrics query --query "sum(rate(http_requests_total[5m])) by (status)" --name http_rps
+kubectl metrics query-range --query "rate(http_requests_total[5m])" --start "-1h"
 kubectl metrics preset --name mtv_migration_status
 
 # MCP server (stdio, for Claude Desktop / Cursor IDE)
