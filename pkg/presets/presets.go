@@ -88,17 +88,17 @@ var Presets = []Preset{
 	{
 		Name:        "mtv_namespace_network_rx",
 		Description: "Top 10 namespaces by network receive rate",
-		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_receive_bytes_total[5m]))))",
+		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_receive_bytes_total{}[5m]))))",
 	},
 	{
 		Name:        "mtv_namespace_network_tx",
 		Description: "Top 10 namespaces by network transmit rate",
-		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_transmit_bytes_total[5m]))))",
+		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_transmit_bytes_total{}[5m]))))",
 	},
 	{
 		Name:        "mtv_network_errors",
 		Description: "Network errors + drops by namespace (top 10)",
-		Query:       "topk(10, sum by (namespace)(rate(container_network_receive_errors_total[5m])) + sum by (namespace)(rate(container_network_transmit_errors_total[5m])))",
+		Query:       "topk(10, sum by (namespace)(rate(container_network_receive_errors_total{}[5m])) + sum by (namespace)(rate(container_network_transmit_errors_total{}[5m])))",
 	},
 
 	// KubeVirt VMI live-migration
@@ -158,7 +158,7 @@ var Presets = []Preset{
 	{
 		Name:        "mtv_namespace_network_rx_over_time",
 		Description: "Top 10 namespaces by RX rate trend",
-		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_receive_bytes_total[5m]))))",
+		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_receive_bytes_total{}[5m]))))",
 		Type:        "range",
 		Start:       "-1h",
 		Step:        "60s",
@@ -193,7 +193,7 @@ func GetPreset(name, namespace string) (Preset, bool) {
 		if strings.Contains(p.Query, "{namespace}") {
 			p.Query = strings.Replace(p.Query, "{namespace}", namespace, 1)
 		} else if strings.Contains(p.Query, "{") {
-			p.Query = strings.Replace(p.Query, "{", fmt.Sprintf(`{namespace="%s",`, namespace), 1)
+			p.Query = strings.ReplaceAll(p.Query, "{", fmt.Sprintf(`{namespace="%s",`, namespace))
 		} else {
 			p.Query = fmt.Sprintf(`%s{namespace="%s"}`, p.Query, namespace)
 		}
