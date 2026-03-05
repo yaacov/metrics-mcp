@@ -55,12 +55,13 @@ func registerTools(server *mcpsdk.Server, capturedHeaders http.Header) {
 
 Subcommands (pass as "command"):
   query        Instant PromQL query (flags: query, format, name, local_time, group_by, no_pivot, selector)
-  query_range  Range PromQL query over a time window (flags: query, start, end, step, format, name, local_time, group_by, no_pivot, selector)
+  query_range  Range PromQL query over a time window (flags: query, name, start, end, step, format, local_time, group_by, no_pivot, selector)
+               Supports multiple queries: pass query and name as arrays (e.g. query: ["rate(container_cpu_usage_seconds_total[5m])", "container_memory_working_set_bytes"], name: ["cpu", "mem"]).
+               Each query's results are labeled with the corresponding name (auto-generated q1, q2, ... if omitted).
   discover     List available metric names (flags: keyword, group_by_prefix)
   labels       List labels or label sets for a metric (flags: metric)
   preset       Run a pre-configured named query (flags: name, namespace, start, end, step, format, local_time, group_by, no_pivot, selector)
-               Some presets are [range] type with default time windows. Pass start/end/step to override defaults
-               or to promote an [instant] preset to a range query.
+               Every preset works as both instant (default) and range query. Pass start to get a time-series trend.
                Range queries use a pivot table by default (one column per label combination). Set no_pivot: true
                to revert to the traditional row-per-sample format.
                Use selector to filter results by labels post-query (e.g. "namespace=prod,pod=~nginx.*").
@@ -69,11 +70,13 @@ Subcommands (pass as "command"):
 Examples:
   {command: "query", flags: {query: "up"}}
   {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h"}}
+  {command: "query_range", flags: {query: ["sum(rate(container_cpu_usage_seconds_total[5m])) by (namespace)", "sum(container_memory_working_set_bytes) by (namespace)"], name: ["cpu", "mem"], start: "-1h"}}
   {command: "discover", flags: {keyword: "mtv", group_by_prefix: true}}
   {command: "labels", flags: {metric: "container_network_receive_bytes_total"}}
+  {command: "preset", flags: {name: "cluster_cpu_utilization"}}
   {command: "preset", flags: {name: "mtv_migration_status", namespace: "mtv-test", group_by: "namespace"}}
-  {command: "preset", flags: {name: "mtv_net_throughput_over_time"}}
-  {command: "preset", flags: {name: "mtv_net_throughput_over_time", start: "-2h", step: "30s"}}
+  {command: "preset", flags: {name: "mtv_net_throughput"}}
+  {command: "preset", flags: {name: "mtv_net_throughput", start: "-2h", step: "30s"}}
   {command: "query", flags: {query: "up", selector: "namespace=prod,job=~prom.*"}}`,
 	}, wrapWithHeaders(handleMetricsRead, capturedHeaders))
 
@@ -130,8 +133,12 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 			metrics.FlagStr(flags, "output"),
 			tableOpts)
 	case "query_range":
-		result, err = metrics.QueryRange(ctx, client,
-			metrics.FlagStr(flags, "query"),
+		queries := metrics.BuildNamedQueries(
+			metrics.FlagStrSlice(flags, "query"),
+			metrics.FlagStrSlice(flags, "name"),
+		)
+		result, err = metrics.QueryRangeMulti(ctx, client,
+			queries,
 			metrics.FlagStr(flags, "start"),
 			metrics.FlagStr(flags, "end"),
 			metrics.FlagStr(flags, "step"),

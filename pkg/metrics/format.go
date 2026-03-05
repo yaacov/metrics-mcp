@@ -115,6 +115,34 @@ func FlagStr(flags map[string]any, key string) string {
 	return ""
 }
 
+// FlagStrSlice extracts a string slice from a flags map.
+// The value may be a single string or a JSON array of strings ([]interface{}).
+func FlagStrSlice(flags map[string]any, key string) []string {
+	v, ok := flags[key]
+	if !ok {
+		return nil
+	}
+	if s, ok := v.(string); ok {
+		return []string{s}
+	}
+	if ss, ok := v.([]string); ok {
+		return ss
+	}
+	arr, ok := v.([]interface{})
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(arr))
+	for _, item := range arr {
+		if s, ok := item.(string); ok {
+			out = append(out, s)
+		} else if item != nil {
+			out = append(out, fmt.Sprintf("%v", item))
+		}
+	}
+	return out
+}
+
 // FlagBool extracts a boolean value from a flags map.
 func FlagBool(flags map[string]any, key string) bool {
 	v, ok := flags[key]

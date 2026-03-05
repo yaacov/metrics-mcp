@@ -1,4 +1,5 @@
-// Package presets provides pre-configured PromQL queries for MTV / Forklift monitoring.
+// Package presets provides pre-configured PromQL queries for cluster monitoring
+// and MTV / Forklift migration tracking.
 package presets
 
 import (
@@ -9,31 +10,74 @@ import (
 const migrationPodRegex = `.*virt-v2v.*|.*populator.*|.*importer.*|.*cdi-upload.*`
 
 // Preset holds a named pre-configured PromQL query.
+// Every preset works as both an instant query (default) and a range query
+// (when --start is provided).
 type Preset struct {
 	Name        string
 	Description string
 	Query       string
-	Type        string // "instant" (default/empty) or "range"
-	Start       string // default start offset for range presets, e.g. "-1h"
-	Step        string // default step for range presets, e.g. "60s"
-}
-
-// IsRange returns true if this preset is a range query.
-func (p Preset) IsRange() bool {
-	return p.Type == "range"
-}
-
-// DisplayType returns "[instant]" or "[range]" for listing output.
-func (p Preset) DisplayType() string {
-	if p.IsRange() {
-		return "[range]"
-	}
-	return "[instant]"
 }
 
 // Presets is the list of all available preset queries.
 var Presets = []Preset{
-	// MTV migration status
+	// ========== General cluster health ==========
+
+	{
+		Name:        "cluster_cpu_utilization",
+		Description: "Cluster CPU utilization percentage",
+		Query:       `100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])))`,
+	},
+	{
+		Name:        "cluster_memory_utilization",
+		Description: "Cluster memory utilization percentage",
+		Query:       "100 * (1 - sum(node_memory_MemAvailable_bytes{}) / sum(node_memory_MemTotal_bytes{}))",
+	},
+	{
+		Name:        "cluster_pod_status",
+		Description: "Pod counts by phase (Running, Pending, Failed, Succeeded, Unknown)",
+		Query:       "sum(kube_pod_status_phase{}) by (phase)",
+	},
+	{
+		Name:        "cluster_node_readiness",
+		Description: "Node readiness status counts",
+		Query:       `sum(kube_node_status_condition{condition="Ready"}) by (status)`,
+	},
+
+	// ========== Namespace-level resource usage ==========
+
+	{
+		Name:        "namespace_cpu_usage",
+		Description: "Top 10 namespaces by CPU usage (cores)",
+		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_cpu_usage_seconds_total{}[5m]))))",
+	},
+	{
+		Name:        "namespace_memory_usage",
+		Description: "Top 10 namespaces by memory usage (bytes)",
+		Query:       "topk(10, sort_desc(sum by (namespace)(container_memory_working_set_bytes{})))",
+	},
+	{
+		Name:        "namespace_network_rx",
+		Description: "Top 10 namespaces by network receive rate",
+		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_receive_bytes_total{}[5m]))))",
+	},
+	{
+		Name:        "namespace_network_tx",
+		Description: "Top 10 namespaces by network transmit rate",
+		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_transmit_bytes_total{}[5m]))))",
+	},
+	{
+		Name:        "namespace_network_errors",
+		Description: "Network errors + drops by namespace (top 10)",
+		Query:       "topk(10, sum by (namespace)(rate(container_network_receive_errors_total{}[5m])) + sum by (namespace)(rate(container_network_transmit_errors_total{}[5m])))",
+	},
+	{
+		Name:        "pod_restarts_top10",
+		Description: "Top 10 pods by container restart count",
+		Query:       "topk(10, sort_desc(sum by (namespace,pod)(kube_pod_container_status_restarts_total{})))",
+	},
+
+	// ========== MTV / Forklift migration status ==========
+
 	{
 		Name:        "mtv_migration_status",
 		Description: "Migration counts by status (succeeded / failed / running)",
@@ -44,8 +88,19 @@ var Presets = []Preset{
 		Description: "Plan-level status counts",
 		Query:       "mtv_plans_status",
 	},
+	{
+		Name:        "mtv_migration_duration",
+		Description: "Migration duration per plan (seconds)",
+		Query:       "mtv_migration_duration_seconds",
+	},
+	{
+		Name:        "mtv_avg_migration_duration",
+		Description: "Average migration duration (seconds)",
+		Query:       "avg(mtv_migrations_duration_seconds_sum{} / mtv_migrations_duration_seconds_count{})",
+	},
 
-	// MTV data transfer & throughput
+	// ========== MTV data transfer & throughput ==========
+
 	{
 		Name:        "mtv_data_transferred",
 		Description: "Total bytes migrated per plan",
@@ -61,13 +116,9 @@ var Presets = []Preset{
 		Description: "Migration storage throughput",
 		Query:       "mtv_migration_storage_throughput",
 	},
-	{
-		Name:        "mtv_migration_duration",
-		Description: "Migration duration per plan (seconds)",
-		Query:       "mtv_migration_duration_seconds",
-	},
 
-	// Migration pod network traffic
+	// ========== MTV migration pod network traffic ==========
+
 	{
 		Name:        "mtv_migration_pod_rx",
 		Description: "Migration pod receive rate (bytes/sec, top 20)",
@@ -84,24 +135,8 @@ var Presets = []Preset{
 		Query:       `sum by (pod)(rate(container_network_receive_bytes_total{pod=~"forklift.*"}[5m]))`,
 	},
 
-	// General namespace network
-	{
-		Name:        "mtv_namespace_network_rx",
-		Description: "Top 10 namespaces by network receive rate",
-		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_receive_bytes_total{}[5m]))))",
-	},
-	{
-		Name:        "mtv_namespace_network_tx",
-		Description: "Top 10 namespaces by network transmit rate",
-		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_transmit_bytes_total{}[5m]))))",
-	},
-	{
-		Name:        "mtv_network_errors",
-		Description: "Network errors + drops by namespace (top 10)",
-		Query:       "topk(10, sum by (namespace)(rate(container_network_receive_errors_total{}[5m])) + sum by (namespace)(rate(container_network_transmit_errors_total{}[5m])))",
-	},
+	// ========== KubeVirt VMI live-migration ==========
 
-	// KubeVirt VMI live-migration
 	{
 		Name:        "mtv_vmi_migrations_pending",
 		Description: "KubeVirt VMI migrations in pending phase",
@@ -111,57 +146,6 @@ var Presets = []Preset{
 		Name:        "mtv_vmi_migrations_running",
 		Description: "KubeVirt VMI migrations in running phase",
 		Query:       "kubevirt_vmi_migrations_in_running_phase",
-	},
-
-	// ---- Range presets (time-series trends) ----
-
-	{
-		Name:        "mtv_net_throughput_over_time",
-		Description: "Migration network throughput trend",
-		Query:       "mtv_migration_net_throughput",
-		Type:        "range",
-		Start:       "-1h",
-		Step:        "60s",
-	},
-	{
-		Name:        "mtv_storage_throughput_over_time",
-		Description: "Migration storage throughput trend",
-		Query:       "mtv_migration_storage_throughput",
-		Type:        "range",
-		Start:       "-1h",
-		Step:        "60s",
-	},
-	{
-		Name:        "mtv_data_transferred_over_time",
-		Description: "Data transfer progress over time",
-		Query:       "mtv_migration_data_transferred_bytes",
-		Type:        "range",
-		Start:       "-6h",
-		Step:        "5m",
-	},
-	{
-		Name:        "mtv_migration_status_over_time",
-		Description: "Migration status counts over time",
-		Query:       "mtv_migrations_status_total",
-		Type:        "range",
-		Start:       "-6h",
-		Step:        "5m",
-	},
-	{
-		Name:        "mtv_migration_pod_rx_over_time",
-		Description: "Migration pod receive rate trend (top 20)",
-		Query:       fmt.Sprintf(`topk(20, sort_desc(sum by (namespace,pod)(rate(container_network_receive_bytes_total{pod=~"%s"}[5m]))))`, migrationPodRegex),
-		Type:        "range",
-		Start:       "-1h",
-		Step:        "60s",
-	},
-	{
-		Name:        "mtv_namespace_network_rx_over_time",
-		Description: "Top 10 namespaces by RX rate trend",
-		Query:       "topk(10, sort_desc(sum by (namespace)(rate(container_network_receive_bytes_total{}[5m]))))",
-		Type:        "range",
-		Start:       "-1h",
-		Step:        "60s",
 	},
 }
 

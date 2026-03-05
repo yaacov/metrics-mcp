@@ -26,17 +26,9 @@ func Preset(ctx context.Context, client *prometheus.Client, name, namespace, sta
 		return fmt.Sprintf("Unknown preset: %s\nAvailable: %s", name, strings.Join(available, ", ")), nil
 	}
 
-	useRange := p.IsRange() || start != ""
-	if useRange {
-		if start == "" {
-			start = p.Start
-		}
-		if step == "" {
-			step = p.Step
-		}
-		if step == "" {
-			step = "60s"
-		}
+	useRange := start != ""
+	if useRange && step == "" {
+		step = "60s"
 	}
 
 	var data map[string]interface{}

@@ -27,19 +27,22 @@ Flags:
 Examples:
   {command: "query", flags: {query: "up"}}
   {command: "query", flags: {query: "up", selector: "namespace=prod"}}
-  {command: "query", flags: {query: "sum(rate(http_requests_total[5m])) by (status)", output: "json"}}
+  {command: "query", flags: {query: "sum(rate(http_requests_total[5m])) by (code)", output: "json"}}
   {command: "query", flags: {query: "node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100"}}`
 
 	case "query_range":
-		return `metrics_read "query_range" — Execute a range PromQL query
+		return `metrics_read "query_range" — Execute one or more range PromQL queries
 
 Returns values over a time window (default: last 1 hour, 60s steps).
-Range queries use a pivot table by default (one column per label combination,
+Supports multiple queries in a single call: pass query and name as arrays.
+Each query's results have __name__ set to the corresponding name (or auto-generated q1, q2, ...).
+Range queries use a pivot table by default (one column per name/label combination,
 one row per timestamp). Set no_pivot: true to revert to the traditional
 row-per-sample format.
 
 Flags:
-  query     (required)  PromQL expression
+  query     (required)  PromQL expression, or array of expressions for multi-query
+  name      (optional)  Display name for each query (string or array). Auto-generated as q1, q2, ... if omitted.
   start     (optional)  Start time: ISO-8601, Unix epoch, or relative offset (default: -1h)
                          Relative offsets: -30m, -1h, -7d, -2w
   end       (optional)  End time: same formats as start (default: now)
@@ -51,7 +54,7 @@ Flags:
 
 Examples:
   {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h"}}
-  {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", selector: "status=200"}}
+  {command: "query_range", flags: {query: ["sum(rate(container_cpu_usage_seconds_total[5m])) by (namespace)", "sum(container_memory_working_set_bytes) by (namespace)"], name: ["cpu", "mem"], start: "-1h"}}
   {command: "query_range", flags: {query: "node_cpu_seconds_total", start: "-7d", step: "1h", output: "json"}}
   {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", no_pivot: true}}`
 
@@ -86,22 +89,20 @@ Examples:
 		lines := []string{
 			`metrics_read "preset" — Run a pre-configured PromQL query by name`,
 			"",
-			"Many presets support a namespace filter. Use this command for quick access",
-			"to common MTV/Forklift monitoring queries without writing PromQL.",
+			"Presets provide quick access to common cluster monitoring and MTV/Forklift",
+			"migration queries without writing PromQL. Many presets support namespace filtering.",
 			"",
-			"Presets marked [range] execute a range query over a time window with sensible",
-			"defaults. You can override the window with start, end, and step flags.",
-			"Instant presets can also be promoted to range queries by passing start.",
+			"Every preset works as both an instant query (default) and a range query.",
+			"Pass start to get a time-series trend (e.g. start: \"-1h\").",
 			"Range queries use a pivot table by default (one column per label combination).",
 			"Set no_pivot: true to revert to the traditional row-per-sample format.",
 			"",
 			"Flags:",
 			"  name       (required)  Preset name (see list below)",
 			"  namespace  (optional)  Namespace filter",
-			"  start      (optional)  Start time: ISO-8601, Unix epoch, or relative offset (e.g. -1h)",
-			"                          Overrides preset default for [range] presets; promotes [instant] presets to range.",
+			"  start      (optional)  Start time: ISO-8601, Unix epoch, or relative offset (e.g. -1h). Enables range query.",
 			"  end        (optional)  End time: same formats as start (default: now)",
-			"  step       (optional)  Step interval (e.g. 15s, 5m, 1h). Overrides preset default.",
+			"  step       (optional)  Step interval (default: 60s). Use 15s, 5m, 1h, etc.",
 			"  output     (optional)  Output format: markdown (default), table, json, raw",
 			"  no_pivot   (optional)  Disable pivot table layout (default: false)",
 			`  selector   (optional)  Label selector to filter results post-query (e.g. "namespace=prod,pod=~nginx.*")`,
@@ -110,14 +111,16 @@ Examples:
 			"Available presets:",
 		}
 		for _, p := range presets.ListPresets() {
-			lines = append(lines, fmt.Sprintf("  %-40s %-9s %s", p.Name, p.DisplayType(), p.Description))
+			lines = append(lines, fmt.Sprintf("  %-40s %s", p.Name, p.Description))
 		}
 		lines = append(lines, "", "Examples:",
-			`  {command: "preset", flags: {name: "mtv_migration_status"}}`,
+			`  {command: "preset", flags: {name: "cluster_cpu_utilization"}}`,
+			`  {command: "preset", flags: {name: "cluster_pod_status"}}`,
+			`  {command: "preset", flags: {name: "mtv_migration_status", namespace: "mtv-test"}}`,
 			`  {command: "preset", flags: {name: "mtv_migration_pod_rx", namespace: "mtv-test", output: "json"}}`,
-			`  {command: "preset", flags: {name: "mtv_migration_pod_rx", selector: "pod=~virt-v2v.*"}}`,
-			`  {command: "preset", flags: {name: "mtv_net_throughput_over_time"}}`,
-			`  {command: "preset", flags: {name: "mtv_net_throughput_over_time", start: "-2h", step: "30s"}}`,
+			`  {command: "preset", flags: {name: "mtv_net_throughput"}}`,
+			`  {command: "preset", flags: {name: "mtv_net_throughput", start: "-2h", step: "30s"}}`,
+			`  {command: "preset", flags: {name: "cluster_cpu_utilization", start: "-1h"}}`,
 		)
 		return strings.Join(lines, "\n")
 
@@ -183,7 +186,7 @@ TIME UNITS
 			"",
 			"SUBCOMMANDS (pass as \"command\"):",
 			"  query        Instant PromQL query                    (flags: query, output, no_pivot, selector)",
-			"  query_range  Range query over a time window          (flags: query, start, end, step, output, no_pivot, selector)",
+			"  query_range  Range query over a time window          (flags: query, name, start, end, step, output, no_pivot, selector)",
 			"  discover     List available metric names              (flags: keyword, group_by_prefix)",
 			"  labels       List labels or label sets for a metric  (flags: metric)",
 			"  preset       Run a pre-configured named query        (flags: name, namespace, start, end, step, output, no_pivot, selector)",
@@ -194,15 +197,16 @@ TIME UNITS
 			"AVAILABLE PRESETS (for use with \"preset\" command):",
 		}
 		for _, p := range presets.ListPresets() {
-			lines = append(lines, fmt.Sprintf("  %-40s %-9s %s", p.Name, p.DisplayType(), p.Description))
+			lines = append(lines, fmt.Sprintf("  %-40s %s", p.Name, p.Description))
 		}
 		lines = append(lines, "",
 			"QUICK EXAMPLES:",
 			`  {command: "query", flags: {query: "up"}}`,
 			`  {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h"}}`,
 			`  {command: "discover", flags: {keyword: "mtv"}}`,
+			`  {command: "preset", flags: {name: "cluster_cpu_utilization"}}`,
 			`  {command: "preset", flags: {name: "mtv_migration_status"}}`,
-			`  {command: "preset", flags: {name: "mtv_net_throughput_over_time"}}`,
+			`  {command: "preset", flags: {name: "mtv_net_throughput"}}`,
 		)
 		return strings.Join(lines, "\n")
 	}

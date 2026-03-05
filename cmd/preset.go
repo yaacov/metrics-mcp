@@ -17,18 +17,19 @@ var presetCmd = &cobra.Command{
 	Short: "Run a pre-configured named PromQL query",
 	Long: `Run a pre-configured named PromQL query.
 
-Many presets support a namespace filter. Use this command for quick access
-to common MTV/Forklift monitoring queries without writing PromQL.
+Presets provide quick access to common cluster monitoring and MTV/Forklift
+migration queries without writing PromQL. Many presets support namespace filtering.
 
-Presets marked [range] execute a range query over a time window with sensible
-defaults. You can override the window with --start, --end, and --step flags.
-Instant presets can also be promoted to range queries by passing --start.
+Every preset works as both an instant query (default) and a range query.
+Pass --start to get a time-series trend (e.g. --start "-1h").
 
 Examples:
+  kubectl metrics preset --name cluster_cpu_utilization
+  kubectl metrics preset --name cluster_pod_status
   kubectl metrics preset --name mtv_migration_status
   kubectl metrics preset --name mtv_migration_pod_rx --namespace mtv-test --output json
-  kubectl metrics preset --name mtv_net_throughput_over_time
-  kubectl metrics preset --name mtv_net_throughput_over_time --start "-2h" --step "30s"
+  kubectl metrics preset --name mtv_net_throughput
+  kubectl metrics preset --name mtv_net_throughput --start "-2h" --step "30s"
 
 Available presets:` + formatPresetList(),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -68,7 +69,7 @@ Available presets:` + formatPresetList(),
 func formatPresetList() string {
 	s := "\n"
 	for _, p := range presets.ListPresets() {
-		s += fmt.Sprintf("  %-40s %-9s %s\n", p.Name, p.DisplayType(), p.Description)
+		s += fmt.Sprintf("  %-40s %s\n", p.Name, p.Description)
 	}
 	return s
 }
@@ -76,9 +77,9 @@ func formatPresetList() string {
 func init() {
 	presetCmd.Flags().String("name", "", "Preset name (required)")
 	presetCmd.Flags().String("namespace", "", "Namespace filter")
-	presetCmd.Flags().String("start", "", "Start time: ISO-8601, Unix epoch, or relative offset (e.g. -1h). Overrides preset default for range presets; promotes instant presets to range.")
+	presetCmd.Flags().String("start", "", "Start time: enables range query (e.g. -1h, -7d). ISO-8601, Unix epoch, or relative offset.")
 	presetCmd.Flags().String("end", "", "End time: same formats as start (default: now)")
-	presetCmd.Flags().String("step", "", "Step interval (e.g. 15s, 5m, 1h). Overrides preset default.")
+	presetCmd.Flags().String("step", "", "Step interval for range queries (default: 60s). E.g. 15s, 5m, 1h.")
 	presetCmd.Flags().StringP("output", "o", "markdown", "Output format: table, markdown, json, raw")
 	presetCmd.Flags().Bool("local-time", false, "Display timestamps in local timezone instead of UTC")
 	presetCmd.Flags().String("group-by", "", "Label name to split results into sub-tables (e.g. namespace, pod)")

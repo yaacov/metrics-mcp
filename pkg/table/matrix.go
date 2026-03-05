@@ -30,7 +30,8 @@ func RenderMatrix(results []interface{}, opts Options) string {
 	if opts.NoPivot {
 		return renderMatrixTable("", parsed, labelKeys, opts)
 	}
-	return renderMatrixPivotTable("", parsed, labelKeys, opts)
+	pivotKeys := append([]string{"__name__"}, labelKeys...)
+	return renderMatrixPivotTable("", parsed, pivotKeys, opts)
 }
 
 // renderGrouped partitions entries by the GroupBy label and renders each group
@@ -52,13 +53,15 @@ func renderGrouped(entries []entry, labelKeys []string, opts Options, matrix boo
 
 	sort.Strings(groupOrder)
 
+	pivotKeys := append([]string{"__name__"}, labelKeys...)
+
 	var sections []string
 	for _, g := range groupOrder {
 		title := fmt.Sprintf("--- %s: %s ---", opts.GroupBy, g)
 		var rendered string
 		switch {
 		case matrix && !opts.NoPivot:
-			rendered = renderMatrixPivotTable(title, groups[g], labelKeys, opts)
+			rendered = renderMatrixPivotTable(title, groups[g], pivotKeys, opts)
 		case matrix:
 			rendered = renderMatrixTable(title, groups[g], labelKeys, opts)
 		default:

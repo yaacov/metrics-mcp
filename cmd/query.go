@@ -20,7 +20,7 @@ Returns the current value of the expression at a single point in time.
 
 Examples:
   kubectl metrics query --query "up"
-  kubectl metrics query --query "sum(rate(http_requests_total[5m])) by (status)" --output json
+  kubectl metrics query --query "sum(rate(http_requests_total[5m])) by (code)" --output json
   kubectl metrics query --query "node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
