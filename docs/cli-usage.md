@@ -172,6 +172,30 @@ kubectl metrics preset --name mtv_migration_status --group-by namespace
 | `mtv_vmi_migrations_pending` | KubeVirt VMI migrations in pending phase |
 | `mtv_vmi_migrations_running` | KubeVirt VMI migrations in running phase |
 
+## Shell Completion
+
+kubectl-metrics supports shell completion via the standard kubectl plugin
+completion mechanism. To enable it, create two small helper scripts on your
+`$PATH` alongside the `kubectl-metrics` binary:
+
+```bash
+# Find the directory where kubectl-metrics is installed
+d="$(dirname "$(which kubectl-metrics)")"
+
+# Create the kubectl completion helper
+cat > "$d/kubectl_complete-metrics" << 'SCRIPT'
+#!/usr/bin/env bash
+kubectl-metrics __complete "$@"
+SCRIPT
+chmod +x "$d/kubectl_complete-metrics"
+
+# Create the oc completion helper (symlink to the kubectl one)
+ln -sf "$d/kubectl_complete-metrics" "$d/oc_complete-metrics"
+```
+
+After this, shell completion works for both `kubectl metrics` and `oc metrics`
+(requires that your shell has kubectl/oc completions loaded).
+
 ## Global Flags
 
 All commands accept standard kubectl flags:

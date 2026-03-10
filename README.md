@@ -88,7 +88,7 @@ See [Similar Tools](docs/similar-tools.md) for a detailed comparison.
 
 See the [docs/](docs/) directory for detailed guides:
 
-- [CLI Usage](docs/cli-usage.md)
+- [CLI Usage](docs/cli-usage.md) (includes [shell completion](docs/cli-usage.md#shell-completion) setup)
 - [MCP Server](docs/mcp-server.md)
 - [Containerized](docs/containerized.md)
 - [Authentication](docs/authentication.md)
