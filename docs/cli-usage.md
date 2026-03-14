@@ -330,6 +330,46 @@ TIMESTAMP            cpu   mem
 ...
 ```
 
+<details>
+<summary>Equivalent curl command (for comparison)</summary>
+
+Without the tool you would hit the Prometheus API directly — once per query,
+with URL-encoded PromQL and Unix-epoch timestamps:
+
+```bash
+# Requires: PROM_API_URL (Thanos/Prometheus route) and KUBE_TOKEN (bearer token)
+curl -sk -H "Authorization: Bearer $KUBE_TOKEN" \
+  "https://$PROM_API_URL/api/v1/query_range?\
+query=sum(rate(container_cpu_usage_seconds_total%7Bnamespace%3D%22kube-system%22%7D%5B5m%5D))&\
+start=$(($(date +%s)-3600))&end=$(date +%s)&step=3600"
+```
+
+The raw JSON response for a **single** query looks like:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "resultType": "matrix",
+    "result": [
+      {
+        "metric": {},
+        "values": [
+          [1741582800, "2.6243981059498711"],
+          [1741586400, "2.3897102445198234"]
+        ]
+      }
+    ]
+  }
+}
+```
+
+You would need to repeat this for the memory query, then merge the two JSON
+responses, convert epoch timestamps to human-readable dates, and format the
+numbers — all of which `kubectl metrics` handles automatically.
+
+</details>
+
 ### Plotting with gnuplot (terminal graph)
 
 The same query with TSV output piped to gnuplot for a quick ASCII graph.
