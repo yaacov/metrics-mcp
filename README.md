@@ -4,21 +4,28 @@ Query Prometheus / Thanos metrics on OpenShift clusters — as a CLI and an MCP 
 
 ## Installation
 
-Download or build the `kubectl-metrics` binary, then place it anywhere on your `PATH`:
+Install the latest release (Linux / macOS):
 
 ```bash
-# Build from source
-make build
-
-# Copy the binary to a directory in your PATH
-sudo cp kubectl-metrics /usr/local/bin/
+curl -sSL https://raw.githubusercontent.com/yaacov/kubectl-metrics/main/install.sh | bash
 ```
 
-Once `kubectl-metrics` is on your `PATH`, kubectl automatically discovers it as a plugin and you can run it as `kubectl metrics`:
+This downloads the binary, verifies its checksum, and sets up shell completion. Installs to `~/.local/bin` by default.
+
+Or build from source:
+
+```bash
+make build
+cp kubectl-metrics ~/.local/bin/kubectl-metrics
+```
+
+Once installed, kubectl discovers it as a plugin:
 
 ```bash
 kubectl metrics --help
 ```
+
+For more options (manual download, shell completion, uninstall), see [Installation](docs/installation.md).
 
 ## Quick Start
 
@@ -88,7 +95,8 @@ See [Similar Tools](docs/similar-tools.md) for a detailed comparison.
 
 See the [docs/](docs/) directory for detailed guides:
 
-- [CLI Usage](docs/cli-usage.md) (includes [shell completion](docs/cli-usage.md#shell-completion) setup)
+- [Installation](docs/installation.md)
+- [CLI Usage](docs/cli-usage.md)
 - [MCP Server](docs/mcp-server.md)
 - [Containerized](docs/containerized.md)
 - [Authentication](docs/authentication.md)
