@@ -35,11 +35,12 @@ kubectl metrics query --query "node_memory_MemAvailable_bytes" --output json
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--query` | (required) | PromQL expression |
-| `--output` / `-o` | `markdown` | Output format: `table`, `markdown`, `json`, `raw` |
+| `--output` / `-o` | `markdown` | Output format: `table`, `markdown`, `json`, `raw`, `csv`, `tsv` |
 | `--name` | | Metric name for the first table column (useful for aggregate queries that lack `__name__`) |
 | `--local-time` | `false` | Display timestamps in local timezone instead of UTC |
 | `--group-by` | | Label name to split results into sub-tables (e.g. `namespace`, `pod`) |
 | `--no-pivot` | `false` | Disable pivot table layout for range results (show one row per sample instead) |
+| `--no-headers` | `false` | Suppress header row in table, CSV, and TSV output |
 | `--selector` / `-l` | | Label selector to filter results post-query (e.g. `"namespace=prod,pod=~nginx.*"`). Operators: `=`, `!=`, `=~`, `!~` |
 
 ### query-range
@@ -68,10 +69,11 @@ kubectl metrics query-range \
 | `--start` | `-1h` | Start time: ISO-8601, Unix epoch, or relative (`-1h`, `-7d`) |
 | `--end` | `now` | End time (same formats) |
 | `--step` | `60s` | Query resolution step |
-| `--output` / `-o` | `markdown` | Output format: `table`, `markdown`, `json`, `raw` |
+| `--output` / `-o` | `markdown` | Output format: `table`, `markdown`, `json`, `raw`, `csv`, `tsv` |
 | `--local-time` | `false` | Display timestamps in local timezone instead of UTC |
 | `--group-by` | | Label name to split results into sub-tables (e.g. `namespace`, `pod`) |
 | `--no-pivot` | `false` | Disable pivot table layout (show one row per sample instead) |
+| `--no-headers` | `false` | Suppress header row in table, CSV, and TSV output |
 | `--selector` / `-l` | | Label selector to filter results post-query (e.g. `"namespace=prod,pod=~nginx.*"`). Operators: `=`, `!=`, `=~`, `!~` |
 
 ### labels
@@ -132,10 +134,11 @@ kubectl metrics preset --name mtv_migration_status --group-by namespace
 | `--start` | | Start time: enables range query (e.g. `-1h`, `-7d`) |
 | `--end` | `now` | End time |
 | `--step` | `60s` | Step interval (e.g. `15s`, `5m`, `1h`) |
-| `--output` / `-o` | `markdown` | Output format: `table`, `markdown`, `json`, `raw` |
+| `--output` / `-o` | `markdown` | Output format: `table`, `markdown`, `json`, `raw`, `csv`, `tsv` |
 | `--local-time` | `false` | Display timestamps in local timezone instead of UTC |
 | `--group-by` | | Label name to split results into sub-tables |
 | `--no-pivot` | `false` | Disable pivot table layout for range results (show one row per sample instead) |
+| `--no-headers` | `false` | Suppress header row in table, CSV, and TSV output |
 | `--selector` / `-l` | | Label selector to filter results post-query (e.g. `"namespace=prod,pod=~nginx.*"`). Operators: `=`, `!=`, `=~`, `!~` |
 
 **Available presets:**
@@ -203,6 +206,10 @@ When `--url` is not provided, the tool auto-discovers the Prometheus/Thanos URL:
 - **table** — Pretty-printed columns with aligned headers (same columns as `markdown`)
 - **json** — JSON array of result entries
 - **raw** — Full Prometheus API response as JSON
+- **csv** — Comma-separated values, suitable for spreadsheets, pandas, and R
+- **tsv** — Tab-separated values, suitable for gnuplot, awk, and Unix pipelines
+
+Use `--no-headers` with `table`, `csv`, or `tsv` to suppress the header row for cleaner piping.
 
 **Instant query example:**
 

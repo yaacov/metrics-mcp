@@ -28,12 +28,14 @@ func RenderVector(results []interface{}, opts Options) string {
 func renderVectorTable(title string, entries []entry, labelKeys []string, opts Options) string {
 	t := newTableWriter(title)
 
-	header := table.Row{"METRIC"}
-	for _, k := range labelKeys {
-		header = append(header, strings.ToUpper(k))
+	if !(opts.NoHeaders && opts.Format != "markdown") {
+		header := table.Row{"METRIC"}
+		for _, k := range labelKeys {
+			header = append(header, strings.ToUpper(k))
+		}
+		header = append(header, "TIMESTAMP", "VALUE")
+		t.AppendHeader(header)
 	}
-	header = append(header, "TIMESTAMP", "VALUE")
-	t.AppendHeader(header)
 
 	for _, e := range entries {
 		row := table.Row{metricName(e, opts)}
@@ -51,5 +53,5 @@ func renderVectorTable(title string, entries []entry, labelKeys []string, opts O
 		t.AppendRow(row)
 	}
 
-	return renderTableOutput(t, opts.Markdown)
+	return renderTableOutput(t, opts.Format)
 }

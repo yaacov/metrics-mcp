@@ -18,7 +18,7 @@ can pick the right tool for your workflow.
 | kubeconfig auth | Yes | No | No | No | Yes |
 | OpenShift auto-discovery | Yes | No | No | No | No |
 | MCP server (AI) | Yes (stdio + SSE) | No | No | Yes (stdio) | No |
-| Output formats | table / markdown / json / raw | json | table / json / csv | json | table |
+| Output formats | table / markdown / json / raw / csv / tsv | json | table / json / csv | json | table |
 | Language | Go | Go | Go | Python / TypeScript | Go |
 | License | Apache-2.0 | Apache-2.0 | Apache-2.0 | MIT | MIT |
 

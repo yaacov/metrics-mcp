@@ -29,7 +29,7 @@ func TestRenderMatrix_PivotIncludesName(t *testing.T) {
 		),
 	}
 
-	out := RenderMatrix(results, Options{Markdown: true})
+	out := RenderMatrix(results, Options{Format: "markdown"})
 
 	if !strings.Contains(out, "cpu/pod-a") {
 		t.Errorf("expected pivot column 'cpu/pod-a' in output:\n%s", out)
@@ -54,7 +54,7 @@ func TestRenderMatrix_PivotSingleQuery(t *testing.T) {
 		),
 	}
 
-	out := RenderMatrix(results, Options{Markdown: true})
+	out := RenderMatrix(results, Options{Format: "markdown"})
 
 	if !strings.Contains(out, "q1/pod-a") {
 		t.Errorf("expected pivot column 'q1/pod-a' in output:\n%s", out)
@@ -76,7 +76,7 @@ func TestRenderMatrix_NoPivotShowsMetricColumn(t *testing.T) {
 		),
 	}
 
-	out := RenderMatrix(results, Options{NoPivot: true, Markdown: true})
+	out := RenderMatrix(results, Options{NoPivot: true, Format: "markdown"})
 
 	if !strings.Contains(out, "METRIC") {
 		t.Errorf("expected METRIC header in no-pivot output:\n%s", out)
@@ -104,7 +104,7 @@ func TestRenderMatrix_PivotNoLabels(t *testing.T) {
 		),
 	}
 
-	out := RenderMatrix(results, Options{Markdown: true})
+	out := RenderMatrix(results, Options{Format: "markdown"})
 
 	if !strings.Contains(out, "cpu") {
 		t.Errorf("expected 'cpu' column in output:\n%s", out)
@@ -126,7 +126,7 @@ func TestRenderMatrix_GroupByName(t *testing.T) {
 		),
 	}
 
-	out := RenderMatrix(results, Options{GroupBy: "__name__", Markdown: true})
+	out := RenderMatrix(results, Options{GroupBy: "__name__", Format: "markdown"})
 
 	if !strings.Contains(out, "--- __name__: cpu ---") {
 		t.Errorf("expected group header for cpu in output:\n%s", out)

@@ -40,12 +40,14 @@ Examples:
 		localTime, _ := cmd.Flags().GetBool("local-time")
 		groupBy, _ := cmd.Flags().GetString("group-by")
 		noPivot, _ := cmd.Flags().GetBool("no-pivot")
+		noHeaders, _ := cmd.Flags().GetBool("no-headers")
 		selector, _ := cmd.Flags().GetString("selector")
 
 		opts := ptable.Options{
 			LocalTime: localTime,
 			GroupBy:   groupBy,
 			NoPivot:   noPivot,
+			NoHeaders: noHeaders,
 			Selector:  selector,
 		}
 
@@ -66,10 +68,11 @@ func init() {
 	queryRangeCmd.Flags().String("start", "", "Start time: ISO-8601, Unix epoch, or relative offset (default: -1h)")
 	queryRangeCmd.Flags().String("end", "", "End time: same formats as start (default: now)")
 	queryRangeCmd.Flags().String("step", "60s", "Step interval (e.g. 15s, 5m, 1h)")
-	queryRangeCmd.Flags().StringP("output", "o", "markdown", "Output format: table, markdown, json, raw")
+	queryRangeCmd.Flags().StringP("output", "o", "markdown", "Output format: table, markdown, json, raw, csv, tsv")
 	queryRangeCmd.Flags().Bool("local-time", false, "Display timestamps in local timezone instead of UTC")
 	queryRangeCmd.Flags().String("group-by", "", "Label name to split results into sub-tables (e.g. namespace, pod)")
 	queryRangeCmd.Flags().Bool("no-pivot", false, "Disable pivot table layout (show one row per sample instead)")
+	queryRangeCmd.Flags().Bool("no-headers", false, "Suppress header row in table, CSV, and TSV output")
 	queryRangeCmd.Flags().StringP("selector", "l", "", `Label selector to filter results (e.g. "namespace=prod,pod=~nginx.*")`)
 	_ = queryRangeCmd.MarkFlagRequired("query")
 	rootCmd.AddCommand(queryRangeCmd)

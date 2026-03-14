@@ -46,8 +46,15 @@ func FormatResult(data map[string]interface{}, format string, opts ptable.Option
 		return string(b)
 	}
 
-	if format == "markdown" {
-		opts.Markdown = true
+	switch format {
+	case "markdown":
+		opts.Format = "markdown"
+	case "csv":
+		opts.Format = "csv"
+	case "tsv":
+		opts.Format = "tsv"
+	default:
+		opts.Format = "table"
 	}
 
 	resultType, _ := dataField["resultType"].(string)

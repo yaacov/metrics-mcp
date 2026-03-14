@@ -15,8 +15,12 @@ type Options struct {
 	// (e.g. "namespace", "pod"). Empty means no grouping.
 	GroupBy string
 
-	// Markdown renders the table in GitHub-compatible Markdown format.
-	Markdown bool
+	// Format selects the table output style: "table" (default), "markdown",
+	// "csv", or "tsv".
+	Format string
+
+	// NoHeaders suppresses the header row in table, CSV, and TSV output.
+	NoHeaders bool
 
 	// NoPivot disables the default pivot layout for matrix results.
 	// When false (default), range queries render one column per label

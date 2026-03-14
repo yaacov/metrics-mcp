@@ -75,12 +75,14 @@ func renderGrouped(entries []entry, labelKeys []string, opts Options, matrix boo
 func renderMatrixTable(title string, entries []entry, labelKeys []string, opts Options) string {
 	t := newTableWriter(title)
 
-	header := table.Row{"METRIC"}
-	for _, k := range labelKeys {
-		header = append(header, strings.ToUpper(k))
+	if !(opts.NoHeaders && opts.Format != "markdown") {
+		header := table.Row{"METRIC"}
+		for _, k := range labelKeys {
+			header = append(header, strings.ToUpper(k))
+		}
+		header = append(header, "TIMESTAMP", "VALUE")
+		t.AppendHeader(header)
 	}
-	header = append(header, "TIMESTAMP", "VALUE")
-	t.AppendHeader(header)
 
 	for i, e := range entries {
 		name := metricName(e, opts)
@@ -109,5 +111,5 @@ func renderMatrixTable(title string, entries []entry, labelKeys []string, opts O
 		}
 	}
 
-	return renderTableOutput(t, opts.Markdown)
+	return renderTableOutput(t, opts.Format)
 }

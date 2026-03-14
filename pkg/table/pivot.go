@@ -49,11 +49,13 @@ func renderMatrixPivotTable(title string, entries []entry, labelKeys []string, o
 
 	t := newTableWriter(title)
 
-	header := table.Row{"TIMESTAMP"}
-	for _, col := range seriesOrder {
-		header = append(header, col)
+	if !(opts.NoHeaders && opts.Format != "markdown") {
+		header := table.Row{"TIMESTAMP"}
+		for _, col := range seriesOrder {
+			header = append(header, col)
+		}
+		t.AppendHeader(header)
 	}
-	t.AppendHeader(header)
 
 	for _, ts := range timestamps {
 		row := table.Row{opts.FormatTimestamp(ts)}
@@ -67,7 +69,7 @@ func renderMatrixPivotTable(title string, entries []entry, labelKeys []string, o
 		t.AppendRow(row)
 	}
 
-	return renderTableOutput(t, opts.Markdown)
+	return renderTableOutput(t, opts.Format)
 }
 
 // buildColumnName creates a human-readable column name from an entry's label

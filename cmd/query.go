@@ -35,6 +35,7 @@ Examples:
 		localTime, _ := cmd.Flags().GetBool("local-time")
 		groupBy, _ := cmd.Flags().GetString("group-by")
 		noPivot, _ := cmd.Flags().GetBool("no-pivot")
+		noHeaders, _ := cmd.Flags().GetBool("no-headers")
 		selector, _ := cmd.Flags().GetString("selector")
 
 		opts := ptable.Options{
@@ -42,6 +43,7 @@ Examples:
 			LocalTime:  localTime,
 			GroupBy:    groupBy,
 			NoPivot:    noPivot,
+			NoHeaders:  noHeaders,
 			Selector:   selector,
 		}
 		client := prometheus.NewClient(promURL, rt)
@@ -56,11 +58,12 @@ Examples:
 
 func init() {
 	queryCmd.Flags().String("query", "", "PromQL expression (required)")
-	queryCmd.Flags().StringP("output", "o", "markdown", "Output format: table, markdown, json, raw")
+	queryCmd.Flags().StringP("output", "o", "markdown", "Output format: table, markdown, json, raw, csv, tsv")
 	queryCmd.Flags().String("name", "", "Metric name to display in the first table column (optional)")
 	queryCmd.Flags().Bool("local-time", false, "Display timestamps in local timezone instead of UTC")
 	queryCmd.Flags().String("group-by", "", "Label name to split results into sub-tables (e.g. namespace, pod)")
 	queryCmd.Flags().Bool("no-pivot", false, "Disable pivot table layout for range results (show one row per sample instead)")
+	queryCmd.Flags().Bool("no-headers", false, "Suppress header row in table, CSV, and TSV output")
 	queryCmd.Flags().StringP("selector", "l", "", `Label selector to filter results (e.g. "namespace=prod,pod=~nginx.*")`)
 	_ = queryCmd.MarkFlagRequired("query")
 	rootCmd.AddCommand(queryCmd)

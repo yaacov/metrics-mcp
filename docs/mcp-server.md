@@ -41,11 +41,11 @@ Query Prometheus/Thanos metrics. Subcommands:
 
 | Command | Description | Key Flags |
 |---------|-------------|-----------|
-| `query` | Instant PromQL query | `query`, `format`, `name`, `local_time`, `group_by`, `no_pivot`, `selector` |
-| `query_range` | Range query over time window (supports multi-query) | `query`, `name`, `start`, `end`, `step`, `format`, `local_time`, `group_by`, `no_pivot`, `selector` |
+| `query` | Instant PromQL query | `query`, `output`, `name`, `local_time`, `group_by`, `no_pivot`, `no_headers`, `selector` |
+| `query_range` | Range query over time window (supports multi-query) | `query`, `name`, `start`, `end`, `step`, `output`, `local_time`, `group_by`, `no_pivot`, `no_headers`, `selector` |
 | `discover` | List metric names | `keyword`, `group_by_prefix` |
 | `labels` | List labels for a metric | `metric` |
-| `preset` | Run a named preset query | `name`, `namespace`, `start`, `end`, `step`, `format`, `local_time`, `group_by`, `no_pivot`, `selector` |
+| `preset` | Run a named preset query | `name`, `namespace`, `start`, `end`, `step`, `output`, `local_time`, `group_by`, `no_pivot`, `no_headers`, `selector` |
 
 For `query_range`, the `query` and `name` flags accept either a string or an array of strings for multi-query support. Each `query[i]` is labeled with the corresponding `name[i]`. If `name` has fewer entries than `query`, the missing names are auto-generated as `q1`, `q2`, ... (e.g. three queries with one name `["cpu"]` produces labels `cpu`, `q2`, `q3`). Extra `name` entries beyond the number of queries are ignored. All queries share the same `start`, `end`, and `step`.
 

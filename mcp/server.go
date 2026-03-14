@@ -21,7 +21,7 @@ import (
 // MetricsReadInput is the input schema for the metrics_read tool.
 type MetricsReadInput struct {
 	Command string         `json:"command" jsonschema:"Subcommand: query | query_range | discover | labels | preset"`
-	Flags   map[string]any `json:"flags,omitempty" jsonschema:"Command-specific parameters (e.g. query: 'up', format: 'json', namespace: 'mtv-test')"`
+	Flags   map[string]any `json:"flags,omitempty" jsonschema:"Command-specific parameters (e.g. query: 'up', output: 'json', namespace: 'mtv-test')"`
 }
 
 // MetricsHelpInput is the input schema for the metrics_help tool.
@@ -49,18 +49,21 @@ func CreateServer(capturedHeaders http.Header) *mcpsdk.Server {
 
 func registerTools(server *mcpsdk.Server, capturedHeaders http.Header) {
 	// ---- metrics_read ----
+	// NOTE: The tool description below intentionally omits CLI-only display
+	// flags (local_time, no_headers) to keep the LLM context lean. The handler
+	// still accepts them — they are just not advertised here.
 	mcpsdk.AddTool(server, &mcpsdk.Tool{
 		Name: "metrics_read",
 		Description: `Query Prometheus / Thanos metrics. Use metrics_help for flag details and PromQL reference.
 
 Subcommands (pass as "command"):
-  query        Instant PromQL query (flags: query, format, name, local_time, group_by, no_pivot, selector)
-  query_range  Range PromQL query over a time window (flags: query, name, start, end, step, format, local_time, group_by, no_pivot, selector)
+  query        Instant PromQL query (flags: query, output, name, group_by, no_pivot, selector)
+  query_range  Range PromQL query over a time window (flags: query, name, start, end, step, output, group_by, no_pivot, selector)
                Supports multiple queries: pass query and name as arrays (e.g. query: ["rate(container_cpu_usage_seconds_total[5m])", "container_memory_working_set_bytes"], name: ["cpu", "mem"]).
                Each query's results are labeled with the corresponding name (auto-generated q1, q2, ... if omitted).
   discover     List available metric names (flags: keyword, group_by_prefix)
   labels       List labels or label sets for a metric (flags: metric)
-  preset       Run a pre-configured named query (flags: name, namespace, start, end, step, format, local_time, group_by, no_pivot, selector)
+  preset       Run a pre-configured named query (flags: name, namespace, start, end, step, output, group_by, no_pivot, selector)
                Every preset works as both instant (default) and range query. Pass start to get a time-series trend.
                Range queries use a pivot table by default (one column per label combination). Set no_pivot: true
                to revert to the traditional row-per-sample format.
@@ -123,6 +126,7 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 		LocalTime:  metrics.FlagBool(flags, "local_time"),
 		GroupBy:    metrics.FlagStr(flags, "group_by"),
 		NoPivot:    metrics.FlagBool(flags, "no_pivot"),
+		NoHeaders:  metrics.FlagBool(flags, "no_headers"),
 		Selector:   metrics.FlagStr(flags, "selector"),
 	}
 

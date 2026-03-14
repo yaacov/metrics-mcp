@@ -56,9 +56,15 @@ func newTableWriter(title string) table.Writer {
 	return t
 }
 
-func renderTableOutput(t table.Writer, markdown bool) string {
-	if markdown {
+func renderTableOutput(t table.Writer, format string) string {
+	switch strings.TrimSpace(strings.ToLower(format)) {
+	case "markdown":
 		return t.RenderMarkdown()
+	case "csv":
+		return t.RenderCSV()
+	case "tsv":
+		return t.RenderTSV()
+	default:
+		return t.Render()
 	}
-	return t.Render()
 }
