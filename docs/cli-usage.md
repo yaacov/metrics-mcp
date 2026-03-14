@@ -304,3 +304,70 @@ METRIC                STATUS     TIMESTAMP            VALUE
 mtv_migration_status  succeeded  2025-03-02 14:30:05  5
 mtv_migration_status  failed     2025-03-02 14:30:05  1
 ```
+
+## Recipes
+
+### Control plane CPU and memory (table)
+
+Fetch total CPU and memory usage for the control plane over the last day.
+Using `sum()` without a `by` clause collapses each query into a single series,
+so the pivot table shows just the `cpu` and `mem` columns:
+
+```bash
+kubectl metrics query-range \
+  --query 'sum(rate(container_cpu_usage_seconds_total{namespace="kube-system"}[5m]))' \
+  --query 'sum(container_memory_working_set_bytes{namespace="kube-system"})' \
+  --name cpu --name mem \
+  --start "-1d" --step "1h" \
+  --output table
+```
+
+```text
+TIMESTAMP            cpu   mem
+2025-03-10 00:00:00  2.5   21.47 G
+2025-03-10 01:00:00  2.6   21.50 G
+2025-03-10 02:00:00  2.4   21.38 G
+...
+```
+
+### Plotting with gnuplot (terminal graph)
+
+The same query with TSV output piped to gnuplot for a quick ASCII graph.
+Save to a file so gnuplot can read it twice (once per series), and use
+`set terminal dumb` to render the chart directly in the terminal.
+CPU and memory have very different scales, so plot memory on the right
+y-axis with `axes x1y2`:
+
+```bash
+kubectl metrics query-range \
+  --query 'sum(rate(container_cpu_usage_seconds_total{namespace="kube-system"}[5m]))' \
+  --query 'sum(container_memory_working_set_bytes{namespace="kube-system"})' \
+  --name cpu --name mem \
+  --start "-1d" --step "1h" \
+  --output tsv > /tmp/cp-metrics.tsv
+
+gnuplot -e "
+    set terminal dumb size 120,25 ansirgb;
+    set datafile separator '\t';
+    set key autotitle columnheader;
+    set y2tics;
+    plot '/tmp/cp-metrics.tsv' using 2 with lines axes x1y1, \
+         '' using 3 with lines axes x1y2"
+```
+
+```text
+  3 +------+-------+-------+-------+-------+-------+-------+------+ 2.2e+10
+    |      +       +       +       +       +   cpu ***  mem ####  |
+    |                                             ***             | 2.15e+10
+2.5 |-+                                      ****               +-|
+    |                                    *****       ############ | 2.1e+10
+    |                              ******       #####             |
+  2 |-+                    ********        ####                 +-| 2.05e+10
+    |              ********           ####                        |
+    |       *******              ####                             | 2e+10
+1.5 |-+  ***                ####                                +-|
+    |  **              #####                                      | 1.95e+10
+    |      +       + ##     +       +       +       +       +     |
+  1 +------+-------+-------+-------+-------+-------+-------+------+ 1.9e+10
+    0      3       6       9       12      15      18      21    24
+```
