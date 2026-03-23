@@ -1,14 +1,14 @@
 apiVersion: krew.googlecontainertools.github.com/v1alpha2
 kind: Plugin
 metadata:
-  name: metrics
+  name: mtv-metrics
 spec:
   version: {{ .TagName }}
   homepage: https://github.com/yaacov/kubectl-metrics
-  shortDescription: Query Prometheus/Thanos metrics on OpenShift clusters
+  shortDescription: Query Prometheus/Thanos metrics for Kubernetes MTV/Forklift
   description: |
-    kubectl-metrics is a kubectl plugin for querying Prometheus and Thanos
-    metrics on OpenShift clusters. It works as both a CLI tool and an MCP
+    kubectl-mtv-metrics is a kubectl plugin for querying Prometheus and Thanos
+    metrics for Kubernetes. It works as both a CLI tool and an MCP
     server for AI assistants (Claude Desktop, Cursor IDE, OpenShift Lightspeed).
   platforms:
   - selector:
@@ -18,10 +18,10 @@ spec:
     {{addURIAndSha "https://github.com/yaacov/kubectl-metrics/releases/download/{{ .TagName }}/kubectl-metrics-{{ .TagName }}-linux-amd64.tar.gz" .TagName }}
     files:
     - from: kubectl-metrics-linux-amd64
-      to: kubectl-metrics
+      to: kubectl-mtv_metrics
     - from: LICENSE
       to: .
-    bin: kubectl-metrics
+    bin: kubectl-mtv_metrics
   - selector:
       matchLabels:
         os: linux
@@ -29,10 +29,10 @@ spec:
     {{addURIAndSha "https://github.com/yaacov/kubectl-metrics/releases/download/{{ .TagName }}/kubectl-metrics-{{ .TagName }}-linux-arm64.tar.gz" .TagName }}
     files:
     - from: kubectl-metrics-linux-arm64
-      to: kubectl-metrics
+      to: kubectl-mtv_metrics
     - from: LICENSE
       to: .
-    bin: kubectl-metrics
+    bin: kubectl-mtv_metrics
   - selector:
       matchLabels:
         os: darwin
@@ -40,10 +40,10 @@ spec:
     {{addURIAndSha "https://github.com/yaacov/kubectl-metrics/releases/download/{{ .TagName }}/kubectl-metrics-{{ .TagName }}-darwin-amd64.tar.gz" .TagName }}
     files:
     - from: kubectl-metrics-darwin-amd64
-      to: kubectl-metrics
+      to: kubectl-mtv_metrics
     - from: LICENSE
       to: .
-    bin: kubectl-metrics
+    bin: kubectl-mtv_metrics
   - selector:
       matchLabels:
         os: darwin
@@ -51,10 +51,10 @@ spec:
     {{addURIAndSha "https://github.com/yaacov/kubectl-metrics/releases/download/{{ .TagName }}/kubectl-metrics-{{ .TagName }}-darwin-arm64.tar.gz" .TagName }}
     files:
     - from: kubectl-metrics-darwin-arm64
-      to: kubectl-metrics
+      to: kubectl-mtv_metrics
     - from: LICENSE
       to: .
-    bin: kubectl-metrics
+    bin: kubectl-mtv_metrics
   - selector:
       matchLabels:
         os: windows
@@ -62,7 +62,7 @@ spec:
     {{addURIAndSha "https://github.com/yaacov/kubectl-metrics/releases/download/{{ .TagName }}/kubectl-metrics-{{ .TagName }}-windows-amd64.zip" .TagName }}
     files:
     - from: kubectl-metrics-windows-amd64.exe
-      to: kubectl-metrics.exe
+      to: kubectl-mtv_metrics.exe
     - from: LICENSE
       to: .
-    bin: kubectl-metrics.exe
+    bin: kubectl-mtv_metrics.exe
