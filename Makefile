@@ -27,7 +27,7 @@ CONTAINER_ENGINE ?= $(shell command -v docker 2>/dev/null || command -v podman 2
 # podman does not support (or need) this flag.
 PROVENANCE_FLAG := $(if $(findstring docker,$(CONTAINER_ENGINE)),--provenance=false,)
 
-.PHONY: help build clean test fmt vet vendor
+.PHONY: help build clean test e2e fmt vet vendor
 
 ## help: Show this help message
 help:
@@ -54,6 +54,10 @@ clean:
 ## test: Run unit tests
 test:
 	go test ./...
+
+## e2e: Run e2e smoke tests (requires OpenShift cluster)
+e2e: build
+	python3 tests/e2e_smoke.py
 
 ## fmt: Format Go code
 fmt:
