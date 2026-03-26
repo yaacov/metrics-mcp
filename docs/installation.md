@@ -28,6 +28,20 @@ The script installs three files:
 
 If the install directory is not in your `PATH`, the script prints instructions for adding it.
 
+## Install with Krew
+
+If you have [Krew](https://krew.sigs.k8s.io/) (the kubectl plugin manager) installed:
+
+```bash
+kubectl krew install mtv-metrics
+```
+
+After installation, use the plugin as:
+
+```bash
+kubectl mtv-metrics --help
+```
+
 ## Build from Source
 
 Requires Go 1.21+.

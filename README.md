@@ -12,6 +12,12 @@ curl -sSL https://raw.githubusercontent.com/yaacov/kubectl-metrics/main/install.
 
 This downloads the binary, verifies its checksum, and sets up shell completion. Installs to `~/.local/bin` by default.
 
+Or install with [Krew](https://krew.sigs.k8s.io/) (kubectl plugin manager):
+
+```bash
+kubectl krew install mtv-metrics
+```
+
 Or build from source:
 
 ```bash
