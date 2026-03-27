@@ -284,12 +284,17 @@ def test_preset():
     ])
     if assert_exit_ok("preset cluster_pod_status json", rc, stderr):
         data = assert_valid_json("preset pod_status valid json", stdout)
-        if isinstance(data, list):
+        if isinstance(data, dict):
+            items = data.get("data", [])
+            record("preset pod_status has results",
+                   isinstance(items, list) and len(items) > 0,
+                   "missing or empty 'data' array in envelope")
+        elif isinstance(data, list):
             record("preset pod_status has results", len(data) > 0,
                    "empty JSON array" if len(data) == 0 else "")
         elif data is not None:
             record("preset pod_status has results", False,
-                   f"expected JSON array but got {type(data).__name__}")
+                   f"expected JSON object or array but got {type(data).__name__}")
 
     # 4. cluster_node_readiness
     stdout, stderr, rc = run(["preset", "--name", "cluster_node_readiness"])
