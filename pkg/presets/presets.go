@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-const migrationPodRegex = `.*virt-v2v.*|.*populator.*|.*importer.*|.*cdi-upload.*`
-
 // Preset holds a named pre-configured PromQL query.
 // Every preset works as both an instant query (default) and a range query
 // (when --start is provided).
@@ -121,13 +119,18 @@ var Presets = []Preset{
 
 	{
 		Name:        "mtv_migration_pod_rx",
-		Description: "Migration pod receive rate (bytes/sec, top 20)",
-		Query:       fmt.Sprintf(`topk(20, sort_desc(sum by (namespace,pod)(rate(container_network_receive_bytes_total{pod=~"%s"}[5m]))))`, migrationPodRegex),
+		Description: "Migration pod receive rate (bytes/sec, top 20, filter by namespace)",
+		Query:       `topk(20, sort_desc(sum by (namespace,pod)(rate(container_network_receive_bytes_total{}[5m]))))`,
 	},
 	{
 		Name:        "mtv_migration_pod_tx",
-		Description: "Migration pod transmit rate (bytes/sec, top 20)",
-		Query:       fmt.Sprintf(`topk(20, sort_desc(sum by (namespace,pod)(rate(container_network_transmit_bytes_total{pod=~"%s"}[5m]))))`, migrationPodRegex),
+		Description: "Migration pod transmit rate (bytes/sec, top 20, filter by namespace)",
+		Query:       `topk(20, sort_desc(sum by (namespace,pod)(rate(container_network_transmit_bytes_total{}[5m]))))`,
+	},
+	{
+		Name:        "mtv_populator_cpu",
+		Description: "Populator pod CPU usage rate (oVirt/OpenStack)",
+		Query:       `topk(20, sort_desc(sum by (namespace,pod)(rate(container_cpu_usage_seconds_total{pod=~"populat.*"}[1m]))))`,
 	},
 	{
 		Name:        "mtv_forklift_traffic",
