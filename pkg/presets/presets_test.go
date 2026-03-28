@@ -45,15 +45,24 @@ func TestGetPreset_SingleExistingSelector(t *testing.T) {
 	}
 }
 
-func TestGetPreset_MultiMetricExistingSelector(t *testing.T) {
+func TestGetPreset_MigrationPodRx_NamespaceOnly(t *testing.T) {
 	p, ok := GetPreset("mtv_migration_pod_rx", "myns")
 	if !ok {
 		t.Fatal("expected preset to exist")
 	}
-	if got := p.Query; got == "" {
-		t.Fatal("query should not be empty")
+	want := `topk(20, sort_desc(sum by (namespace,pod)(rate(container_network_receive_bytes_total{namespace="myns",}[5m]))))`
+	if p.Query != want {
+		t.Fatalf("want:\n  %s\ngot:\n  %s", want, p.Query)
 	}
-	assertContains(t, p.Query, `{namespace="myns",pod=~"`)
+}
+
+func TestGetPreset_PopulatorCPU(t *testing.T) {
+	p, ok := GetPreset("mtv_populator_cpu", "myns")
+	if !ok {
+		t.Fatal("expected preset to exist")
+	}
+	assertContains(t, p.Query, `namespace="myns"`)
+	assertContains(t, p.Query, `pod=~"populat.*"`)
 }
 
 func TestGetPreset_EmptySelector_SingleMetric(t *testing.T) {

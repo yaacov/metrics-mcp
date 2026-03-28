@@ -107,10 +107,10 @@ kubectl metrics preset --name namespace_cpu_usage
 
 # MTV migration presets
 kubectl metrics preset --name mtv_migration_status
-kubectl metrics preset --name mtv_migration_pod_rx --namespace mtv-test --output json
+kubectl metrics preset --name mtv_migration_pod_rx --namespace mtv-test --output markdown
 
 # Filter preset results by label
-kubectl metrics preset --name mtv_migration_pod_rx --selector "pod=~virt-v2v.*"
+kubectl metrics preset --name mtv_migration_pod_rx --selector "namespace=mtv-test"
 
 # Run an instant preset (uses built-in defaults)
 kubectl metrics preset --name mtv_net_throughput
@@ -169,8 +169,9 @@ kubectl metrics preset --name mtv_migration_status --group-by namespace
 | `mtv_data_transferred` | Total bytes migrated per plan |
 | `mtv_net_throughput` | Migration network throughput |
 | `mtv_storage_throughput` | Migration storage throughput |
-| `mtv_migration_pod_rx` | Migration pod receive rate (bytes/sec, top 20) |
-| `mtv_migration_pod_tx` | Migration pod transmit rate (bytes/sec, top 20) |
+| `mtv_migration_pod_rx` | Migration pod receive rate (bytes/sec, top 20, filter by namespace) |
+| `mtv_migration_pod_tx` | Migration pod transmit rate (bytes/sec, top 20, filter by namespace) |
+| `mtv_populator_cpu` | Populator pod CPU usage rate (oVirt/OpenStack) |
 | `mtv_forklift_traffic` | Forklift operator pod network traffic (bytes/sec) |
 | `mtv_vmi_migrations_pending` | KubeVirt VMI migrations in pending phase |
 | `mtv_vmi_migrations_running` | KubeVirt VMI migrations in running phase |

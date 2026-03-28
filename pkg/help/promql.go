@@ -34,7 +34,7 @@ Flags:
 Examples:
   {command: "query", flags: {query: "up"}}
   {command: "query", flags: {query: "up", selector: "namespace=prod"}}
-  {command: "query", flags: {query: "sum(rate(http_requests_total[5m])) by (code)", output: "json"}}
+  {command: "query", flags: {query: "sum(rate(http_requests_total[5m])) by (code)", output: "markdown"}}
   {command: "query", flags: {query: "node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100"}}`
 
 	case "query_range":
@@ -63,7 +63,7 @@ Flags:
 Examples:
   {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h"}}
   {command: "query_range", flags: {query: ["sum(rate(container_cpu_usage_seconds_total[5m])) by (namespace)", "sum(container_memory_working_set_bytes) by (namespace)"], name: ["cpu", "mem"], start: "-1h"}}
-  {command: "query_range", flags: {query: "node_cpu_seconds_total", start: "-7d", step: "1h", output: "json"}}
+  {command: "query_range", flags: {query: "node_cpu_seconds_total", start: "-7d", step: "1h", output: "markdown"}}
   {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", no_pivot: true}}`
 
 	case "discover":
@@ -126,7 +126,7 @@ Examples:
 			`  {command: "preset", flags: {name: "cluster_cpu_utilization"}}`,
 			`  {command: "preset", flags: {name: "cluster_pod_status"}}`,
 			`  {command: "preset", flags: {name: "mtv_migration_status", namespace: "mtv-test"}}`,
-			`  {command: "preset", flags: {name: "mtv_migration_pod_rx", namespace: "mtv-test", output: "json"}}`,
+			`  {command: "preset", flags: {name: "mtv_migration_pod_rx", namespace: "mtv-test", output: "markdown"}}`,
 			`  {command: "preset", flags: {name: "mtv_net_throughput"}}`,
 			`  {command: "preset", flags: {name: "mtv_net_throughput", start: "-2h", step: "30s"}}`,
 			`  {command: "preset", flags: {name: "cluster_cpu_utilization", start: "-1h"}}`,
