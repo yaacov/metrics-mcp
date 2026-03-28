@@ -150,6 +150,44 @@ var Presets = []Preset{
 		Description: "KubeVirt VMI migrations in running phase",
 		Query:       "kubevirt_vmi_migrations_in_running_phase",
 	},
+
+	// ========== KubeVirt VM resource usage ==========
+
+	{
+		Name:        "vm_cpu_usage",
+		Description: "Top 10 VMs by CPU usage (cores)",
+		Query:       "topk(10, sort_desc(sum by (namespace,name)(rate(kubevirt_vmi_cpu_usage_seconds_total{}[5m]))))",
+	},
+	{
+		Name:        "vm_memory_usage",
+		Description: "Top 10 VMs by resident memory (bytes)",
+		Query:       "topk(10, sort_desc(sum by (namespace,name)(kubevirt_vmi_memory_resident_bytes{})))",
+	},
+	{
+		Name:        "vm_network_rx",
+		Description: "Top 10 VMs by network receive rate (bytes/sec)",
+		Query:       "topk(10, sort_desc(sum by (namespace,name)(rate(kubevirt_vmi_network_receive_bytes_total{}[5m]))))",
+	},
+	{
+		Name:        "vm_network_tx",
+		Description: "Top 10 VMs by network transmit rate (bytes/sec)",
+		Query:       "topk(10, sort_desc(sum by (namespace,name)(rate(kubevirt_vmi_network_transmit_bytes_total{}[5m]))))",
+	},
+	{
+		Name:        "vm_storage_read",
+		Description: "Top 10 VMs by disk read throughput (bytes/sec)",
+		Query:       "topk(10, sort_desc(sum by (namespace,name)(rate(kubevirt_vmi_storage_read_traffic_bytes_total{}[5m]))))",
+	},
+	{
+		Name:        "vm_storage_write",
+		Description: "Top 10 VMs by disk write throughput (bytes/sec)",
+		Query:       "topk(10, sort_desc(sum by (namespace,name)(rate(kubevirt_vmi_storage_write_traffic_bytes_total{}[5m]))))",
+	},
+	{
+		Name:        "vm_storage_iops",
+		Description: "Top 10 VMs by total IOPS (read + write)",
+		Query:       "topk(10, sort_desc(sum by (namespace,name)(rate(kubevirt_vmi_storage_iops_read_total{}[5m]) + rate(kubevirt_vmi_storage_iops_write_total{}[5m]))))",
+	},
 }
 
 // presetMap provides O(1) lookup by name.

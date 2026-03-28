@@ -103,13 +103,26 @@ See [Similar Tools](docs/similar-tools.md) for a detailed comparison.
 
 See the [docs/](docs/) directory for detailed guides:
 
-- [Installation](docs/installation.md)
-- [CLI Usage](docs/cli-usage.md)
-- [MCP Server](docs/mcp-server.md)
-- [Containerized](docs/containerized.md)
-- [Authentication](docs/authentication.md)
-- [Deployment](docs/deployment.md)
-- [Similar Tools](docs/similar-tools.md)
+**Getting started**
+- [Installation](docs/installation.md) — install, Krew, shell completion
+- [CLI Usage](docs/cli-usage.md) — commands, flags, presets, output formats
+- [PromQL Reference](docs/promql-reference.md) — query language cheat sheet
+
+**Querying guides**
+- [Query Cookbook](docs/query-cookbook.md) — recipes for storage, network, pods, and migrations
+- [VM & Migration Cookbook](docs/vm-migration-cookbook.md) — per-migration monitoring, per-disk I/O, KubeVirt VM metrics
+- [Metrics Reference](docs/metrics-reference.md) — metric names and label tables
+
+**MCP and AI integration**
+- [MCP Server](docs/mcp-server.md) — stdio and SSE modes, AI assistant setup
+- [Containerized](docs/containerized.md) — running the MCP server from a container image
+
+**Operations**
+- [Authentication](docs/authentication.md) — kubeconfig, client certs, TokenRequest
+- [Deployment](docs/deployment.md) — deploy on OpenShift, Lightspeed integration
+
+**Comparison**
+- [Similar Tools](docs/similar-tools.md) — feature comparison with other tools
 
 ## Development
 
