@@ -3,8 +3,11 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -57,13 +60,14 @@ func registerTools(server *mcpsdk.Server, capturedHeaders http.Header) {
 		Description: `Query Prometheus / Thanos metrics. Use metrics_help for flag details and PromQL reference.
 
 Subcommands (pass as "command"):
-  query        Instant PromQL query (flags: query, output, name, group_by, no_pivot, selector)
-  query_range  Range PromQL query over a time window (flags: query, name, start, end, step, output, group_by, no_pivot, selector)
+  query        Instant PromQL query (flags: query, output, file, name, group_by, no_pivot, selector)
+  query_range  Range PromQL query over a time window (flags: query, name, start, end, step, output, file, group_by, no_pivot, selector)
                Supports multiple queries: pass query and name as arrays (e.g. query: ["rate(container_cpu_usage_seconds_total[5m])", "container_memory_working_set_bytes"], name: ["cpu", "mem"]).
                Each query's results are labeled with the corresponding name (auto-generated q1, q2, ... if omitted).
+               Pass file to write output to disk and return only a summary (e.g. file: "/tmp/data.tsv"). The path must be under the system temp directory. Useful for large results intended for gnuplot or other tools.
   discover     List available metric names (flags: keyword, group_by_prefix)
   labels       List labels or label sets for a metric (flags: metric)
-  preset       Run a pre-configured named query (flags: name, namespace, start, end, step, output, group_by, no_pivot, selector)
+  preset       Run a pre-configured named query (flags: name, namespace, start, end, step, output, file, group_by, no_pivot, selector)
                Every preset works as both instant (default) and range query. Pass start to get a time-series trend.
                Range queries use a pivot table by default (one column per label combination). Set no_pivot: true
                to revert to the traditional row-per-sample format.
@@ -80,6 +84,7 @@ Examples:
   {command: "preset", flags: {name: "mtv_migration_status", namespace: "mtv-test", group_by: "namespace"}}
   {command: "preset", flags: {name: "mtv_net_throughput"}}
   {command: "preset", flags: {name: "mtv_net_throughput", start: "-2h", step: "30s"}}
+  {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", output: "tsv", file: "/tmp/data.tsv"}}
   {command: "query", flags: {query: "up", selector: "namespace=prod,job=~prom.*"}}`,
 	}, wrapWithHeaders(handleMetricsRead, capturedHeaders))
 
@@ -171,6 +176,88 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 		return textResult(metrics.FriendlyError(command, err, promURL)), nil, nil
 	}
 	klog.V(1).Infof("metrics_read %s completed in %.3fs", command, time.Since(t0).Seconds())
+
+	if filePath := metrics.FlagStr(flags, "file"); filePath != "" {
+		baseDir := os.TempDir()
+		cleaned := filepath.Clean(filePath)
+		absPath, absErr := filepath.Abs(cleaned)
+		if absErr != nil {
+			return textResult(fmt.Sprintf("Invalid file path %q: %v", filePath, absErr)), nil, nil
+		}
+		absBase, _ := filepath.Abs(baseDir)
+		if !strings.HasPrefix(absPath, absBase+string(filepath.Separator)) && absPath != absBase {
+			return textResult(fmt.Sprintf("File path %q is outside the allowed directory (%s)", filePath, absBase)), nil, nil
+		}
+		if writeErr := os.WriteFile(absPath, []byte(result), 0600); writeErr != nil {
+			return textResult(fmt.Sprintf("Failed to write file %s: %v", filePath, writeErr)), nil, nil
+		}
+
+		format := metrics.FlagStr(flags, "output")
+		if format == "" {
+			switch strings.ToLower(filepath.Ext(filePath)) {
+			case ".csv":
+				format = "csv"
+			case ".tsv":
+				format = "tsv"
+			case ".json":
+				format = "json"
+			default:
+				format = "markdown"
+			}
+		}
+
+		lines := strings.Split(result, "\n")
+		var rows int
+		var header string
+
+		switch format {
+		case "json":
+			var arr []json.RawMessage
+			if json.Unmarshal([]byte(result), &arr) == nil {
+				rows = len(arr)
+			} else {
+				for _, l := range lines {
+					if strings.TrimSpace(l) != "" {
+						rows++
+					}
+				}
+			}
+		case "raw":
+			for _, l := range lines {
+				if strings.TrimSpace(l) != "" {
+					rows++
+				}
+			}
+		case "markdown":
+			if len(lines) > 0 {
+				header = lines[0]
+			}
+			rows = len(lines) - 1
+			if rows > 0 && lines[len(lines)-1] == "" {
+				rows--
+			}
+			for _, l := range lines[1:] {
+				bare := strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(l), "|", ""), " ", "")
+				if len(bare) > 0 && strings.Trim(bare, "-:") == "" {
+					rows--
+				}
+			}
+		default:
+			if len(lines) > 0 {
+				header = lines[0]
+			}
+			rows = len(lines) - 1
+			if rows > 0 && lines[len(lines)-1] == "" {
+				rows--
+			}
+		}
+
+		if header != "" {
+			return textResult(fmt.Sprintf("Wrote %d rows to %s\nColumns: %s", rows, filePath, header)), nil, nil
+		}
+		return textResult(fmt.Sprintf("Wrote %d items to %s", rows, filePath)), nil, nil
+	}
+
 	return textResult(result), nil, nil
 }
 

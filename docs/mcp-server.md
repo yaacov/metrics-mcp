@@ -41,17 +41,19 @@ Query Prometheus/Thanos metrics. Subcommands:
 
 | Command | Description | Key Flags |
 |---------|-------------|-----------|
-| `query` | Instant PromQL query | `query`, `output`, `name`, `local_time`, `group_by`, `no_pivot`, `no_headers`, `selector` |
-| `query_range` | Range query over time window (supports multi-query) | `query`, `name`, `start`, `end`, `step`, `output`, `local_time`, `group_by`, `no_pivot`, `no_headers`, `selector` |
+| `query` | Instant PromQL query | `query`, `output`, `file`, `name`, `local_time`, `group_by`, `no_pivot`, `no_headers`, `selector` |
+| `query_range` | Range query over time window (supports multi-query) | `query`, `name`, `start`, `end`, `step`, `output`, `file`, `local_time`, `group_by`, `no_pivot`, `no_headers`, `selector` |
 | `discover` | List metric names | `keyword`, `group_by_prefix` |
 | `labels` | List labels for a metric | `metric` |
-| `preset` | Run a named preset query | `name`, `namespace`, `start`, `end`, `step`, `output`, `local_time`, `group_by`, `no_pivot`, `no_headers`, `selector` |
+| `preset` | Run a named preset query | `name`, `namespace`, `start`, `end`, `step`, `output`, `file`, `local_time`, `group_by`, `no_pivot`, `no_headers`, `selector` |
 
 For `query_range`, the `query` and `name` flags accept either a string or an array of strings for multi-query support. Each `query[i]` is labeled with the corresponding `name[i]`. If `name` has fewer entries than `query`, the missing names are auto-generated as `q1`, `q2`, ... (e.g. three queries with one name `["cpu"]` produces labels `cpu`, `q2`, `q3`). Extra `name` entries beyond the number of queries are ignored. All queries share the same `start`, `end`, and `step`.
 
 Set `local_time` to `true` for local-timezone timestamps. Use `group_by` to split results into sub-tables by a label (e.g. `"namespace"` or `"__name__"` to split by query). Use `selector` to filter results by labels post-query (e.g. `"namespace=prod,pod=~nginx.*"`); supported operators: `=` (equal), `!=` (not equal), `=~` (regex), `!~` (negative regex).
 
 Range queries default to a pivot table layout (one column per name/label combination, one row per timestamp). Set `no_pivot: true` to use the traditional row-per-sample layout.
+
+Pass `file` to write the formatted output directly to a file and return only a short summary (row count and column names). The path must be under the system temp directory (e.g. `/tmp/data.tsv`). This is useful for large range-query results intended for gnuplot or other external tools, as it avoids returning large text payloads.
 
 Every preset works as both an instant query (default) and a range query. Pass `start` to get a time-series trend (e.g. `start: "-1h"`).
 
@@ -66,6 +68,7 @@ Every preset works as both an instant query (default) and a range query. Pass `s
 {"command": "preset", "flags": {"name": "mtv_migration_status", "namespace": "mtv-test"}}
 {"command": "preset", "flags": {"name": "mtv_net_throughput"}}
 {"command": "preset", "flags": {"name": "mtv_net_throughput", "start": "-2h", "step": "30s"}}
+{"command": "query_range", "flags": {"query": "rate(http_requests_total[5m])", "start": "-1h", "output": "tsv", "file": "/tmp/data.tsv"}}
 {"command": "query", "flags": {"query": "up", "selector": "namespace=prod,job=~prom.*"}}
 ```
 
