@@ -39,6 +39,31 @@ func formatValue(raw interface{}) string {
 	return humanize.Ftoa(f)
 }
 
+func rawValue(raw interface{}) string {
+	s, _ := raw.(string)
+	if s == "" {
+		return fmt.Sprintf("%v", raw)
+	}
+
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil || math.IsNaN(f) || math.IsInf(f, 0) {
+		return s
+	}
+
+	return strconv.FormatFloat(f, 'f', -1, 64)
+}
+
+func isMachineFormat(format string) bool {
+	return format == "tsv" || format == "csv"
+}
+
+func valueForFormat(raw interface{}, format string) string {
+	if isMachineFormat(format) {
+		return rawValue(raw)
+	}
+	return formatValue(raw)
+}
+
 func newTableWriter(title string) table.Writer {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleDefault)

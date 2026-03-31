@@ -35,7 +35,7 @@ func renderMatrixPivotTable(title string, entries []entry, labelKeys []string, o
 			}
 			ts, _ := pair[0].(float64)
 			tsSet[ts] = struct{}{}
-			sd.values[ts] = formatValue(pair[1])
+			sd.values[ts] = valueForFormat(pair[1], opts.Format)
 		}
 	}
 
@@ -58,7 +58,7 @@ func renderMatrixPivotTable(title string, entries []entry, labelKeys []string, o
 	}
 
 	for _, ts := range timestamps {
-		row := table.Row{opts.FormatTimestamp(ts)}
+		row := table.Row{opts.TimestampForFormat(ts)}
 		for _, col := range seriesOrder {
 			if sd, ok := seriesMap[col]; ok {
 				row = append(row, sd.values[ts])

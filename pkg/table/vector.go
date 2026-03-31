@@ -45,8 +45,8 @@ func renderVectorTable(title string, entries []entry, labelKeys []string, opts O
 		}
 		if len(e.value) == 2 {
 			ts, _ := e.value[0].(float64)
-			row = append(row, opts.FormatTimestamp(ts))
-			row = append(row, formatValue(e.value[1]))
+			row = append(row, opts.TimestampForFormat(ts))
+			row = append(row, valueForFormat(e.value[1], opts.Format))
 		} else {
 			row = append(row, "", "")
 		}

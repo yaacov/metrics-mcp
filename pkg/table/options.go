@@ -1,7 +1,10 @@
 // Package table provides pretty-printed table rendering for Prometheus query results.
 package table
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 // Options controls how Prometheus results are rendered as tables.
 type Options struct {
@@ -42,4 +45,18 @@ func (o Options) FormatTimestamp(ts float64) string {
 		t = t.UTC()
 	}
 	return t.Format(dateFormat)
+}
+
+// RawTimestamp returns the Unix epoch timestamp as a plain numeric string.
+func (o Options) RawTimestamp(ts float64) string {
+	return strconv.FormatFloat(ts, 'f', -1, 64)
+}
+
+// TimestampForFormat returns a raw epoch for machine formats (TSV, CSV)
+// and a human-readable date for display formats (table, markdown).
+func (o Options) TimestampForFormat(ts float64) string {
+	if isMachineFormat(o.Format) {
+		return o.RawTimestamp(ts)
+	}
+	return o.FormatTimestamp(ts)
 }

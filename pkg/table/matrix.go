@@ -101,8 +101,8 @@ func renderMatrixTable(title string, entries []entry, labelKeys []string, opts O
 				row = append(row, lv)
 			}
 			ts, _ := pair[0].(float64)
-			row = append(row, opts.FormatTimestamp(ts))
-			row = append(row, formatValue(pair[1]))
+			row = append(row, opts.TimestampForFormat(ts))
+			row = append(row, valueForFormat(pair[1], opts.Format))
 			t.AppendRow(row)
 		}
 
