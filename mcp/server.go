@@ -60,14 +60,14 @@ func registerTools(server *mcpsdk.Server, capturedHeaders http.Header) {
 		Description: `Query Prometheus / Thanos metrics. Use metrics_help for flag details and PromQL reference.
 
 Subcommands (pass as "command"):
-  query        Instant PromQL query (flags: query, output, file, name, group_by, no_pivot, selector)
-  query_range  Range PromQL query over a time window (flags: query, name, start, end, step, output, file, group_by, no_pivot, selector)
+  query        Instant PromQL query (flags: query, output, filename, name, group_by, no_pivot, selector)
+  query_range  Range PromQL query over a time window (flags: query, name, start, end, step, output, filename, group_by, no_pivot, selector)
                Supports multiple queries: pass query and name as arrays (e.g. query: ["rate(container_cpu_usage_seconds_total[5m])", "container_memory_working_set_bytes"], name: ["cpu", "mem"]).
                Each query's results are labeled with the corresponding name (auto-generated q1, q2, ... if omitted).
-               Pass file to write output to disk and return only a summary (e.g. file: "/tmp/data.tsv"). The path must be under the system temp directory. Useful for large results intended for gnuplot or other tools.
+               Pass filename to write output to a temp file and return only a summary with the full path (e.g. filename: "data.tsv"). Useful for large results intended for gnuplot or other tools.
   discover     List available metric names (flags: keyword, group_by_prefix)
   labels       List labels or label sets for a metric (flags: metric)
-  preset       Run a pre-configured named query (flags: name, namespace, start, end, step, output, file, group_by, no_pivot, selector)
+  preset       Run a pre-configured named query (flags: name, namespace, start, end, step, output, filename, group_by, no_pivot, selector)
                Every preset works as both instant (default) and range query. Pass start to get a time-series trend.
                Range queries use a pivot table by default (one column per label combination). Set no_pivot: true
                to revert to the traditional row-per-sample format.
@@ -84,7 +84,7 @@ Examples:
   {command: "preset", flags: {name: "mtv_migration_status", namespace: "mtv-test", group_by: "namespace"}}
   {command: "preset", flags: {name: "mtv_net_throughput"}}
   {command: "preset", flags: {name: "mtv_net_throughput", start: "-2h", step: "30s"}}
-  {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", output: "tsv", file: "/tmp/data.tsv"}}
+  {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", output: "tsv", filename: "data.tsv"}}
   {command: "query", flags: {query: "up", selector: "namespace=prod,job=~prom.*"}}`,
 	}, wrapWithHeaders(handleMetricsRead, capturedHeaders))
 
@@ -121,6 +121,37 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 		flags = map[string]any{}
 	}
 
+	// Resolve effective output format: explicit flag, then infer from filename extension.
+	outputFormat := metrics.FlagStr(flags, "output")
+	fileName := metrics.FlagStr(flags, "filename")
+	var fullPath string
+	var reservedFile *os.File
+
+	if fileName != "" {
+		if fileName == "." || fileName == ".." || filepath.Base(fileName) != fileName || strings.ContainsAny(fileName, `/\`) {
+			return textResult(fmt.Sprintf("filename %q must be a plain filename without path separators (e.g. \"data.tsv\")", fileName)), nil, nil
+		}
+		if outputFormat == "" {
+			switch strings.ToLower(filepath.Ext(fileName)) {
+			case ".csv":
+				outputFormat = "csv"
+			case ".tsv":
+				outputFormat = "tsv"
+			case ".json":
+				outputFormat = "json"
+			}
+		}
+		fullPath = filepath.Join(os.TempDir(), fileName)
+		f, openErr := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
+		if openErr != nil {
+			if os.IsExist(openErr) {
+				return textResult(fmt.Sprintf("File %s already exists; use a different filename", fullPath)), nil, nil
+			}
+			return textResult(fmt.Sprintf("Failed to create file %s: %v", fullPath, openErr)), nil, nil
+		}
+		reservedFile = f
+	}
+
 	client := prometheus.NewClient(promURL, rt)
 	t0 := time.Now()
 	var result string
@@ -139,7 +170,7 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 	case "query":
 		result, err = metrics.Query(ctx, client,
 			metrics.FlagStr(flags, "query"),
-			metrics.FlagStr(flags, "output"),
+			outputFormat,
 			tableOpts)
 	case "query_range":
 		queries := metrics.BuildNamedQueries(
@@ -151,7 +182,7 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 			metrics.FlagStr(flags, "start"),
 			metrics.FlagStr(flags, "end"),
 			metrics.FlagStr(flags, "step"),
-			metrics.FlagStr(flags, "output"),
+			outputFormat,
 			tableOpts)
 	case "discover":
 		result, err = metrics.Discover(ctx, client,
@@ -166,51 +197,41 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 			metrics.FlagStr(flags, "start"),
 			metrics.FlagStr(flags, "end"),
 			metrics.FlagStr(flags, "step"),
-			metrics.FlagStr(flags, "output"),
+			outputFormat,
 			tableOpts)
 	default:
+		if reservedFile != nil {
+			reservedFile.Close()
+			os.Remove(fullPath)
+		}
 		return textResult(fmt.Sprintf("Unknown command %q. Available: query, query_range, discover, labels, preset.\nCall metrics_help(\"%s\") for details.", command, command)), nil, nil
 	}
 
 	if err != nil {
+		if reservedFile != nil {
+			reservedFile.Close()
+			os.Remove(fullPath)
+		}
 		return textResult(metrics.FriendlyError(command, err, promURL)), nil, nil
 	}
 	klog.V(1).Infof("metrics_read %s completed in %.3fs", command, time.Since(t0).Seconds())
 
-	if filePath := metrics.FlagStr(flags, "file"); filePath != "" {
-		baseDir := os.TempDir()
-		cleaned := filepath.Clean(filePath)
-		absPath, absErr := filepath.Abs(cleaned)
-		if absErr != nil {
-			return textResult(fmt.Sprintf("Invalid file path %q: %v", filePath, absErr)), nil, nil
-		}
-		absBase, _ := filepath.Abs(baseDir)
-		if !strings.HasPrefix(absPath, absBase+string(filepath.Separator)) && absPath != absBase {
-			return textResult(fmt.Sprintf("File path %q is outside the allowed directory (%s)", filePath, absBase)), nil, nil
-		}
-		if writeErr := os.WriteFile(absPath, []byte(result), 0600); writeErr != nil {
-			return textResult(fmt.Sprintf("Failed to write file %s: %v", filePath, writeErr)), nil, nil
-		}
-
-		format := metrics.FlagStr(flags, "output")
-		if format == "" {
-			switch strings.ToLower(filepath.Ext(filePath)) {
-			case ".csv":
-				format = "csv"
-			case ".tsv":
-				format = "tsv"
-			case ".json":
-				format = "json"
-			default:
-				format = "markdown"
+	if reservedFile != nil {
+		_, writeErr := reservedFile.WriteString(result)
+		closeErr := reservedFile.Close()
+		if writeErr != nil || closeErr != nil {
+			os.Remove(fullPath)
+			if writeErr != nil {
+				return textResult(fmt.Sprintf("Failed to write file %s: %v", fullPath, writeErr)), nil, nil
 			}
+			return textResult(fmt.Sprintf("Failed to close file %s: %v", fullPath, closeErr)), nil, nil
 		}
 
 		lines := strings.Split(result, "\n")
 		var rows int
 		var header string
 
-		switch format {
+		switch outputFormat {
 		case "json":
 			var arr []json.RawMessage
 			if json.Unmarshal([]byte(result), &arr) == nil {
@@ -228,7 +249,7 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 					rows++
 				}
 			}
-		case "markdown":
+		case "markdown", "":
 			if len(lines) > 0 {
 				header = lines[0]
 			}
@@ -253,9 +274,9 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 		}
 
 		if header != "" {
-			return textResult(fmt.Sprintf("Wrote %d rows to %s\nColumns: %s", rows, filePath, header)), nil, nil
+			return textResult(fmt.Sprintf("Wrote %d rows to %s\nColumns: %s", rows, fullPath, header)), nil, nil
 		}
-		return textResult(fmt.Sprintf("Wrote %d items to %s", rows, filePath)), nil, nil
+		return textResult(fmt.Sprintf("Wrote %d items to %s", rows, fullPath)), nil, nil
 	}
 
 	return textResult(result), nil, nil

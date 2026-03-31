@@ -25,7 +25,7 @@ Returns the current value of the expression at a single point in time.
 Flags:
   query    (required)  PromQL expression (e.g. "up", "node_cpu_seconds_total")
   output   (optional)  Output format: markdown (default), table, json, raw, csv, tsv
-  file     (optional)  MCP only. Write output to a file and return only a summary. Path must be under the system temp directory (e.g. "/tmp/data.tsv")
+  filename (optional)  MCP only. Write output to a temp file and return only a summary with the full path (e.g. "data.tsv")
   name     (optional)  Metric name for the first table column (useful when __name__ is absent)
   group_by (optional)  Label name to split results into sub-tables (e.g. "namespace", "pod")
   no_pivot (optional)  Disable pivot table layout for range results (default: false)
@@ -56,7 +56,7 @@ Flags:
   end      (optional)  End time: same formats as start (default: now)
   step     (optional)  Step interval (default: 60s). Use "15s", "5m", "1h", etc.
   output   (optional)  Output format: markdown (default), table, json, raw, csv, tsv
-  file     (optional)  MCP only. Write output to a file and return only a summary. Path must be under the system temp directory (e.g. "/tmp/data.tsv").
+  filename (optional)  MCP only. Write output to a temp file and return only a summary with the full path (e.g. "data.tsv").
                         Useful for large results intended for gnuplot or other tools.
   group_by (optional)  Label name to split results into sub-tables (e.g. "namespace", "pod")
   no_pivot (optional)  Disable pivot table layout (default: false)
@@ -66,7 +66,7 @@ Flags:
 Examples:
   {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h"}}
   {command: "query_range", flags: {query: ["sum(rate(container_cpu_usage_seconds_total[5m])) by (namespace)", "sum(container_memory_working_set_bytes) by (namespace)"], name: ["cpu", "mem"], start: "-1h"}}
-  {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", output: "tsv", file: "/tmp/data.tsv"}}
+  {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", output: "tsv", filename: "data.tsv"}}
   {command: "query_range", flags: {query: "node_cpu_seconds_total", start: "-7d", step: "1h", output: "markdown"}}
   {command: "query_range", flags: {query: "rate(http_requests_total[5m])", start: "-1h", no_pivot: true}}`
 
@@ -116,7 +116,7 @@ Examples:
 			"  end       (optional)  End time: same formats as start (default: now)",
 			"  step      (optional)  Step interval (default: 60s). Use 15s, 5m, 1h, etc.",
 			"  output    (optional)  Output format: markdown (default), table, json, raw, csv, tsv",
-			`  file      (optional)  MCP only. Write output to a file and return only a summary. Path must be under the system temp directory (e.g. "/tmp/data.tsv")`,
+			`  filename  (optional)  MCP only. Write output to a temp file and return only a summary with the full path (e.g. "data.tsv")`,
 			"  group_by  (optional)  Label name to split results into sub-tables (e.g. \"namespace\", \"pod\")",
 			"  no_pivot  (optional)  Disable pivot table layout (default: false)",
 			`  selector  (optional)  Label selector to filter results post-query (e.g. "namespace=prod,pod=~nginx.*")`,
@@ -199,11 +199,11 @@ TIME UNITS
 			"metrics_read — Query Prometheus / Thanos metrics",
 			"",
 			"SUBCOMMANDS (pass as \"command\"):",
-			"  query        Instant PromQL query                    (flags: query, output, file, name, group_by, no_pivot, selector)",
-			"  query_range  Range query over a time window          (flags: query, name, start, end, step, output, file, group_by, no_pivot, selector)",
+			"  query        Instant PromQL query                    (flags: query, output, filename, name, group_by, no_pivot, selector)",
+			"  query_range  Range query over a time window          (flags: query, name, start, end, step, output, filename, group_by, no_pivot, selector)",
 			"  discover     List available metric names              (flags: keyword, group_by_prefix)",
 			"  labels       List labels or label sets for a metric  (flags: metric)",
-			"  preset       Run a pre-configured named query        (flags: name, namespace, start, end, step, output, file, group_by, no_pivot, selector)",
+			"  preset       Run a pre-configured named query        (flags: name, namespace, start, end, step, output, filename, group_by, no_pivot, selector)",
 			"",
 			"Call metrics_help(\"<command>\") for detailed flag descriptions and examples.",
 			"Call metrics_help(\"promql\") for PromQL query language reference.",
