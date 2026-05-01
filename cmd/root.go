@@ -27,8 +27,10 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "kubectl-metrics",
-	Short: "Query Prometheus / Thanos metrics on OpenShift clusters",
+	Use:          "kubectl-metrics",
+	Short:        "Query Prometheus / Thanos metrics on OpenShift clusters",
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	Long: `Query Prometheus / Thanos metrics on OpenShift clusters.
 
 It provides a CLI and an MCP server, both backed by shared logic.
@@ -211,13 +213,15 @@ func init() {
 	configFlags = genericclioptions.NewConfigFlags(true)
 	configFlags.AddFlags(rootCmd.PersistentFlags())
 
+	rootCmd.PersistentFlags().Lookup("insecure-skip-tls-verify").Shorthand = "k"
+
 	rootCmd.PersistentFlags().StringVar(&metricsURL, "url", "", "Prometheus/Thanos URL override (skips auto-discovery)")
 }
 
 // Execute runs the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(1)
 	}
 }

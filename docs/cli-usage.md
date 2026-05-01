@@ -192,7 +192,7 @@ All commands accept standard kubectl flags:
 | `--token` | Bearer token for authentication |
 | `--namespace` / `-n` | Namespace scope |
 | `--url` | Prometheus/Thanos URL override (skips auto-discovery) |
-| `--insecure-skip-tls-verify` | Skip TLS certificate verification |
+| `--insecure-skip-tls-verify` / `-k` | Skip TLS certificate verification |
 
 ## Prometheus URL Resolution
 

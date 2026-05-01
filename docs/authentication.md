@@ -85,7 +85,7 @@ Metrics commands connect to the **Thanos/Prometheus route**, which is served by 
 | Flag | Description |
 |------|-------------|
 | `--certificate-authority` | Path to a custom CA certificate file (PEM) for verifying Prometheus/K8s connections |
-| `--insecure-skip-tls-verify` | Skip all TLS certificate verification (insecure, use for development only) |
+| `--insecure-skip-tls-verify` / `-k` | Skip all TLS certificate verification (insecure, use for development only) |
 
 Both flags work on all subcommands (CLI and `mcp-server`).
 
@@ -94,8 +94,8 @@ Both flags work on all subcommands (CLI and `mcp-server`).
 For development or lab clusters where you trust the network:
 
 ```bash
-kubectl metrics discover --insecure-skip-tls-verify
-kubectl metrics mcp-server --insecure-skip-tls-verify
+kubectl metrics discover -k
+kubectl metrics mcp-server -k
 ```
 
 ### Proper fix: use the ingress CA

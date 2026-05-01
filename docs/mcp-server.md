@@ -31,7 +31,7 @@ kubectl metrics mcp-server --http --port 8443 --cert-file tls.crt --key-file tls
 | `--cert-file` | | TLS certificate (enables HTTPS for serving) |
 | `--key-file` | | TLS private key (enables HTTPS for serving) |
 | `--certificate-authority` | | CA certificate for verifying upstream (Prometheus/K8s) connections |
-| `--insecure-skip-tls-verify` | `false` | Skip TLS verification for upstream connections (insecure) |
+| `--insecure-skip-tls-verify` / `-k` | `false` | Skip TLS verification for upstream connections (insecure) |
 
 ## MCP Tools
 

@@ -103,7 +103,33 @@ func FriendlyError(command string, err error, metricsURL string) string {
 		return fmt.Sprintf("Request timed out querying Prometheus at %q.\nThe query may be too expensive or the server is overloaded. Try a simpler query or a shorter time range.", metricsURL)
 	}
 
+	if isTLSCertError(errStr) {
+		return fmt.Sprintf(
+			"TLS certificate verification failed for %q.\n\n"+
+				"The Prometheus route uses a different CA than your kubeconfig.\n\n"+
+				"To fix:\n"+
+				"  kubectl metrics ... -k                          # skip verification\n"+
+				"  kubectl metrics ... --certificate-authority CA  # use ingress CA",
+			metricsURL)
+	}
+
 	return fmt.Sprintf("Error in %s: %s", command, errStr)
+}
+
+// isTLSCertError returns true if the error string indicates a TLS certificate
+// verification failure (x509 unknown authority, expired cert, name mismatch, etc.).
+func isTLSCertError(errStr string) bool {
+	tlsPatterns := []string{
+		"x509: certificate",
+		"tls: failed to verify certificate",
+		"certificate is not trusted",
+	}
+	for _, p := range tlsPatterns {
+		if strings.Contains(errStr, p) {
+			return true
+		}
+	}
+	return false
 }
 
 // FlagStr extracts a string value from a flags map.
