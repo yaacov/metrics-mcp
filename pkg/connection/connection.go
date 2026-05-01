@@ -10,11 +10,13 @@ package connection
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -45,20 +47,66 @@ func (t *bearerTokenTransport) RoundTrip(req *http.Request) (*http.Response, err
 	return t.base.RoundTrip(r)
 }
 
+// cloneDefaultTransport returns a clone of http.DefaultTransport with all its
+// proxy, pooling, timeout, and HTTP/2 settings preserved.
+func cloneDefaultTransport() *http.Transport {
+	return http.DefaultTransport.(*http.Transport).Clone()
+}
+
 // InsecureTransport returns a transport that skips TLS verification.
 func InsecureTransport() http.RoundTripper {
-	return &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	tr := cloneDefaultTransport()
+	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	return tr
+}
+
+// NewCATransport creates a transport that verifies TLS using a custom CA
+// certificate file. Returns an error if the file cannot be read or parsed.
+func NewCATransport(caFile string) (http.RoundTripper, error) {
+	caPEM, err := os.ReadFile(caFile)
+	if err != nil {
+		return nil, fmt.Errorf("reading CA certificate %s: %w", caFile, err)
 	}
+
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(caPEM) {
+		return nil, fmt.Errorf("no valid certificates found in %s", caFile)
+	}
+
+	tr := cloneDefaultTransport()
+	tr.TLSClientConfig = &tls.Config{RootCAs: pool}
+	return tr, nil
+}
+
+// DefaultTransportBase returns the appropriate base transport based on the
+// configured TLS mode. Returns an error if a custom CA path is configured
+// but cannot be loaded.
+func DefaultTransportBase() (http.RoundTripper, error) {
+	if defaultInsecureSkipTLS {
+		return InsecureTransport(), nil
+	}
+	if defaultCACertPath != "" {
+		rt, err := NewCATransport(defaultCACertPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load custom CA at %s: %w", defaultCACertPath, err)
+		}
+		return rt, nil
+	}
+	return cloneDefaultTransport(), nil
 }
 
 // NewBearerTokenTransport creates a transport that adds a bearer token
-// to every request, with InsecureSkipVerify for self-signed certs.
-func NewBearerTokenTransport(token string) http.RoundTripper {
+// to every request, using the configured TLS mode (insecure, custom CA,
+// or system CAs). Returns an error if a custom CA is configured but invalid.
+func NewBearerTokenTransport(token string) (http.RoundTripper, error) {
+	base, err := DefaultTransportBase()
+	if err != nil {
+		return nil, err
+	}
 	return &bearerTokenTransport{
 		token: token,
-		base:  InsecureTransport(),
-	}
+		base:  base,
+	}, nil
 }
 
 // --- Context accessors ---
@@ -112,15 +160,19 @@ func GetMetricsURL(ctx context.Context) (string, bool) {
 //   - Authorization: Bearer <token>
 //   - X-Kubernetes-Server: <url>
 //   - X-Metrics-Server: <url>
-func WithCredsFromHeaders(ctx context.Context, headers http.Header) context.Context {
+func WithCredsFromHeaders(ctx context.Context, headers http.Header) (context.Context, error) {
 	if headers == nil {
-		return ctx
+		return ctx, nil
 	}
 
 	if auth := headers.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
 		token := strings.TrimPrefix(auth, "Bearer ")
 		if token != "" {
-			ctx = WithTransport(ctx, NewBearerTokenTransport(token))
+			rt, err := NewBearerTokenTransport(token)
+			if err != nil {
+				return ctx, err
+			}
+			ctx = WithTransport(ctx, rt)
 		}
 	}
 
@@ -132,15 +184,17 @@ func WithCredsFromHeaders(ctx context.Context, headers http.Header) context.Cont
 		ctx = WithMetricsURL(ctx, metricsURL)
 	}
 
-	return ctx
+	return ctx, nil
 }
 
 // --- Package-level defaults (set from CLI flags at startup) ---
 
 var (
-	defaultTransport  http.RoundTripper
-	defaultKubeServer string
-	defaultMetricsURL string
+	defaultTransport       http.RoundTripper
+	defaultKubeServer      string
+	defaultMetricsURL      string
+	defaultCACertPath      string
+	defaultInsecureSkipTLS bool
 )
 
 // SetDefaultTransport sets the default authenticated transport from kubeconfig.
@@ -152,10 +206,22 @@ func SetDefaultKubeServer(s string) { defaultKubeServer = s }
 // SetDefaultMetricsURL sets the default Prometheus/Thanos URL from CLI flags.
 func SetDefaultMetricsURL(u string) { defaultMetricsURL = u }
 
-// ResolveConnection returns (prometheusURL, transport) using the 3-tier precedence:
+// SetDefaultCACert sets the path to a custom CA certificate for TLS verification.
+func SetDefaultCACert(path string) { defaultCACertPath = path }
+
+// GetDefaultCACert returns the configured CA certificate path.
+func GetDefaultCACert() string { return defaultCACertPath }
+
+// SetDefaultInsecureSkipTLS sets whether to skip TLS verification.
+func SetDefaultInsecureSkipTLS(skip bool) { defaultInsecureSkipTLS = skip }
+
+// GetDefaultInsecureSkipTLS returns whether TLS verification is skipped.
+func GetDefaultInsecureSkipTLS() bool { return defaultInsecureSkipTLS }
+
+// ResolveConnection returns (prometheusURL, transport, error) using the 3-tier precedence:
 //
 //	context (HTTP headers) > CLI defaults > auto-discovery
-func ResolveConnection(ctx context.Context) (string, http.RoundTripper) {
+func ResolveConnection(ctx context.Context) (string, http.RoundTripper, error) {
 	// 1. Context (from HTTP headers)
 	metricsURL, _ := GetMetricsURL(ctx)
 	rt, _ := GetTransport(ctx)
@@ -172,9 +238,13 @@ func ResolveConnection(ctx context.Context) (string, http.RoundTripper) {
 		kubeServer = defaultKubeServer
 	}
 
-	// 3. If no transport available, use a bare insecure transport
+	// 3. If no transport available, use the configured TLS mode
 	if rt == nil {
-		rt = InsecureTransport()
+		var err error
+		rt, err = DefaultTransportBase()
+		if err != nil {
+			return "", nil, err
+		}
 	}
 
 	// 4. Auto-discover Prometheus URL if still empty
@@ -182,7 +252,7 @@ func ResolveConnection(ctx context.Context) (string, http.RoundTripper) {
 		metricsURL = AutoDiscoverPrometheusURL(kubeServer, rt)
 	}
 
-	return metricsURL, rt
+	return metricsURL, rt, nil
 }
 
 // AutoDiscoverPrometheusURL attempts to find the Prometheus/Thanos URL from the cluster.

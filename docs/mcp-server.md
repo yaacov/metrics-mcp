@@ -28,8 +28,10 @@ kubectl metrics mcp-server --http --port 8443 --cert-file tls.crt --key-file tls
 | `--http` | `false` | Enable HTTP mode using Streamable HTTP transport |
 | `--port` | `9091` | Listen port |
 | `--host` | `127.0.0.1` | Bind address (use `0.0.0.0` to expose on all interfaces) |
-| `--cert-file` | | TLS certificate (enables HTTPS) |
-| `--key-file` | | TLS private key (enables HTTPS) |
+| `--cert-file` | | TLS certificate (enables HTTPS for serving) |
+| `--key-file` | | TLS private key (enables HTTPS for serving) |
+| `--certificate-authority` | | CA certificate for verifying upstream (Prometheus/K8s) connections |
+| `--insecure-skip-tls-verify` | `false` | Skip TLS verification for upstream connections (insecure) |
 
 ## MCP Tools
 

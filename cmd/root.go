@@ -49,6 +49,18 @@ Prometheus URL Resolution:
 			return
 		}
 
+		// Propagate kubeconfig's insecure-skip-tls-verify to the connection
+		// default so that per-request transports (e.g. bearer tokens from
+		// HTTP headers) also skip verification.
+		if config.Insecure {
+			connection.SetDefaultInsecureSkipTLS(true)
+		}
+		// Similarly, use the kubeconfig CA when no explicit --certificate-authority
+		// was passed on the command line.
+		if connection.GetDefaultCACert() == "" && config.TLSClientConfig.CAFile != "" {
+			connection.SetDefaultCACert(config.TLSClientConfig.CAFile)
+		}
+
 		logAuthMethod(config)
 		connection.SetDefaultKubeServer(config.Host)
 		connection.SetDefaultMetricsURL(metricsURL)
@@ -56,7 +68,7 @@ Prometheus URL Resolution:
 		if needsBearerToken(config) {
 			setupClientCertAuth(config)
 		} else {
-			rt, err := buildInsecureTransport(config)
+			rt, err := buildTransport(config)
 			if err != nil {
 				klog.V(2).Infof("Could not create authenticated transport: %v", err)
 				return
@@ -80,7 +92,7 @@ func needsBearerToken(config *rest.Config) bool {
 // requires a bearer token. We use the cert-based client to request a
 // service account token via the TokenRequest API.
 func setupClientCertAuth(config *rest.Config) {
-	kubeRT, err := buildInsecureTransport(config)
+	kubeRT, err := buildTransport(config)
 	if err != nil {
 		klog.V(2).Infof("Could not create kube transport: %v", err)
 		return
@@ -99,7 +111,13 @@ func setupClientCertAuth(config *rest.Config) {
 	token := requestServiceAccountToken(config)
 	if token != "" {
 		klog.V(2).Info("[auth] Using service account token for Prometheus")
-		connection.SetDefaultTransport(connection.NewBearerTokenTransport(token))
+		rt, err := connection.NewBearerTokenTransport(token)
+		if err != nil {
+			klog.V(2).Infof("[auth] Could not create bearer token transport: %v", err)
+			connection.SetDefaultTransport(kubeRT)
+			return
+		}
+		connection.SetDefaultTransport(rt)
 	} else {
 		klog.V(2).Info("[auth] WARNING: could not obtain bearer token; Prometheus calls may fail with 401")
 		connection.SetDefaultTransport(kubeRT)
@@ -166,14 +184,22 @@ func logAuthMethod(config *rest.Config) {
 	}
 }
 
-// buildInsecureTransport creates an http.RoundTripper from the REST config
-// that carries the kubeconfig's credentials but uses InsecureSkipVerify
-// for self-signed certificates.
-func buildInsecureTransport(config *rest.Config) (http.RoundTripper, error) {
+// buildTransport creates an http.RoundTripper from the REST config that
+// carries the kubeconfig's credentials, with TLS behavior determined by:
+//  1. --insecure-skip-tls-verify: skip verification entirely
+//  2. --certificate-authority (connection default): use the custom CA
+//  3. Otherwise: use the kubeconfig CA or system CAs
+func buildTransport(config *rest.Config) (http.RoundTripper, error) {
 	promConfig := rest.CopyConfig(config)
-	promConfig.TLSClientConfig.Insecure = true
-	promConfig.TLSClientConfig.CAData = nil
-	promConfig.TLSClientConfig.CAFile = ""
+
+	if connection.GetDefaultInsecureSkipTLS() || config.Insecure {
+		promConfig.TLSClientConfig.Insecure = true
+		promConfig.TLSClientConfig.CAData = nil
+		promConfig.TLSClientConfig.CAFile = ""
+	} else if ca := connection.GetDefaultCACert(); ca != "" {
+		promConfig.TLSClientConfig.CAFile = ca
+		promConfig.TLSClientConfig.CAData = nil
+	}
 
 	return rest.TransportFor(promConfig)
 }

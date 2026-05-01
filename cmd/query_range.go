@@ -26,7 +26,10 @@ Examples:
   kubectl metrics query-range --query "node_cpu_seconds_total" --start "-7d" --step "1h" --output json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
-		promURL, rt := connection.ResolveConnection(ctx)
+		promURL, rt, err := connection.ResolveConnection(ctx)
+		if err != nil {
+			return fmt.Errorf("TLS configuration error: %w", err)
+		}
 		if promURL == "" {
 			return fmt.Errorf("Prometheus URL is required: use --url flag or ensure cluster access for auto-discovery")
 		}

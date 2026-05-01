@@ -23,7 +23,10 @@ Examples:
   kubectl metrics labels --metric container_network_receive_bytes_total`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
-		promURL, rt := connection.ResolveConnection(ctx)
+		promURL, rt, err := connection.ResolveConnection(ctx)
+		if err != nil {
+			return fmt.Errorf("TLS configuration error: %w", err)
+		}
 		if promURL == "" {
 			return fmt.Errorf("Prometheus URL is required: use --url flag or ensure cluster access for auto-discovery")
 		}

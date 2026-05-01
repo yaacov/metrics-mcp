@@ -42,6 +42,17 @@ podman run --rm -p 8080:8080 \
   quay.io/yaacov/kubectl-metrics-mcp-server:latest
 ```
 
+### With a custom CA certificate
+
+```bash
+podman run --rm -p 8080:8080 \
+  -v ./ca.crt:/tls/ca.crt:ro \
+  -e MCP_KUBE_SERVER=https://api.mycluster.example.com:6443 \
+  -e MCP_KUBE_TOKEN="$(oc whoami -t)" \
+  -e MCP_KUBE_CA_CERT=/tls/ca.crt \
+  quay.io/yaacov/kubectl-metrics-mcp-server:latest
+```
+
 ### With TLS (HTTPS)
 
 Mount certificate and key files into the container:
@@ -68,7 +79,8 @@ podman run --rm -p 8443:8443 \
 | `MCP_KEY_FILE` | | TLS private key path (enables HTTPS) |
 | `MCP_KUBE_SERVER` | | Kubernetes API server URL |
 | `MCP_KUBE_TOKEN` | | Bearer token for K8s and Prometheus auth |
-| `MCP_KUBE_INSECURE` | | Set `true` to skip TLS verification for the K8s API |
+| `MCP_KUBE_INSECURE` | | Set `true` to skip TLS verification for upstream connections |
+| `MCP_KUBE_CA_CERT` | | Path to a CA certificate file for TLS verification |
 | `MCP_METRICS_URL` | | Prometheus/Thanos URL override (skips auto-discovery) |
 
 ## Connecting an AI Client

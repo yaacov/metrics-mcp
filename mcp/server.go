@@ -102,19 +102,31 @@ Omit command for an overview of all subcommands and available presets.`,
 }
 
 func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input MetricsReadInput) (*mcpsdk.CallToolResult, any, error) {
-	// Extract credentials from request headers into context
-	if req.Extra != nil && req.Extra.Header != nil {
-		ctx = connection.WithCredsFromHeaders(ctx, req.Extra.Header)
-	}
-
-	promURL, rt := connection.ResolveConnection(ctx)
-	if promURL == "" {
-		return textResult("Prometheus URL not configured. Provide it via --url flag, X-Metrics-Server header, or ensure cluster access for auto-discovery."), nil, nil
-	}
-
+	// Validate command early (doesn't require a connection)
 	command := strings.TrimSpace(strings.ToLower(input.Command))
 	if command == "" {
 		return textResult("Missing required field 'command'. Use one of: query, query_range, discover, labels, preset.\nCall metrics_help for details."), nil, nil
+	}
+	validCommands := map[string]bool{"query": true, "query_range": true, "discover": true, "labels": true, "preset": true}
+	if !validCommands[command] {
+		return textResult(fmt.Sprintf("Unknown command %q. Available: query, query_range, discover, labels, preset.\nCall metrics_help(\"%s\") for details.", command, command)), nil, nil
+	}
+
+	// Extract credentials from request headers into context
+	if req.Extra != nil && req.Extra.Header != nil {
+		var err error
+		ctx, err = connection.WithCredsFromHeaders(ctx, req.Extra.Header)
+		if err != nil {
+			return textResult(fmt.Sprintf("TLS configuration error: %v", err)), nil, nil
+		}
+	}
+
+	promURL, rt, err := connection.ResolveConnection(ctx)
+	if err != nil {
+		return textResult(fmt.Sprintf("TLS configuration error: %v", err)), nil, nil
+	}
+	if promURL == "" {
+		return textResult("Prometheus URL not configured. Provide it via --url flag, X-Metrics-Server header, or ensure cluster access for auto-discovery."), nil, nil
 	}
 	flags := input.Flags
 	if flags == nil {
@@ -155,7 +167,6 @@ func handleMetricsRead(ctx context.Context, req *mcpsdk.CallToolRequest, input M
 	client := prometheus.NewClient(promURL, rt)
 	t0 := time.Now()
 	var result string
-	var err error
 
 	tableOpts := ptable.Options{
 		MetricName: metrics.FlagStr(flags, "name"),

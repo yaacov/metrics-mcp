@@ -81,6 +81,17 @@ Uses standard kubectl flags (`--kubeconfig`, `--context`, `--token`, `--server`)
 
 For client certificate auth (e.g. Kind/minikube), automatically requests a service account token via the Kubernetes TokenRequest API.
 
+## TLS Verification
+
+Standard `oc` / `kubectl` commands connect to the Kubernetes API server, whose CA is in your kubeconfig. Metrics commands connect to the Thanos/Prometheus route, which is served by the OpenShift ingress controller using a different CA. You may need to pass `--insecure-skip-tls-verify` or `--certificate-authority` for metrics to work:
+
+```bash
+kubectl metrics discover --insecure-skip-tls-verify
+kubectl metrics discover --certificate-authority /path/to/ingress-ca.crt
+```
+
+See [Authentication](docs/authentication.md) for details.
+
 ## Deploy on OpenShift
 
 ```bash

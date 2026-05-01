@@ -57,7 +57,7 @@ test:
 
 ## e2e: Run e2e smoke tests (requires OpenShift cluster)
 e2e: build
-	python3 tests/e2e_smoke.py
+	INSECURE_SKIP_TLS_VERIFY=true python3 tests/e2e_smoke.py
 
 ## e2e-mcp: Run MCP e2e tests (builds binary, starts server, runs tests, stops server)
 .PHONY: e2e-mcp

@@ -5,7 +5,7 @@ description = "End-to-end tests for kubectl-metrics MCP server"
 requires-python = ">=3.10"
 dependencies = [
     "pytest>=8.0",
-    "pytest-asyncio>=0.26,<1",
+    "pytest-asyncio>=1.0,<2",
     "pytest-order>=1.2",
     "python-dotenv>=1.0",
     "mcp>=1.24.0,<2",

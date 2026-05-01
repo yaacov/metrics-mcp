@@ -35,9 +35,13 @@ Modes:
   Default: Stdio mode for AI assistant integration
   --http:  HTTP server mode using Streamable HTTP transport
 
-Security:
+MCP Server TLS (for serving clients):
   --cert-file:   Path to TLS certificate file (enables TLS when both cert and key provided)
   --key-file:    Path to TLS private key file (enables TLS when both cert and key provided)
+
+Upstream TLS Verification (for Prometheus/Kubernetes connections):
+  Use the global --certificate-authority and --insecure-skip-tls-verify flags
+  (inherited from kubectl) to control TLS verification for upstream connections.
 
 HTTP Mode Authentication (HTTP Headers):
   Authorization: Bearer <token>    - bearer token for Prometheus auth
@@ -106,25 +110,24 @@ func runHTTP(ctx context.Context, sigChan chan os.Signal) error {
 		}
 	}()
 
+	shutdownServer := func(msg string) {
+		klog.Info(msg)
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			klog.Errorf("Server shutdown error: %v", err)
+		}
+	}
+
 	select {
 	case err := <-errChan:
 		if err != nil && err != http.ErrServerClosed {
 			return err
 		}
 	case <-ctx.Done():
-		klog.Info("Context cancelled, shutting down server...")
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer shutdownCancel()
-		if err := server.Shutdown(shutdownCtx); err != nil {
-			klog.Errorf("Server shutdown error: %v", err)
-		}
+		shutdownServer("Context cancelled, shutting down server...")
 	case <-sigChan:
-		klog.Info("Shutting down server...")
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer shutdownCancel()
-		if err := server.Shutdown(shutdownCtx); err != nil {
-			klog.Errorf("Server shutdown error: %v", err)
-		}
+		shutdownServer("Shutting down server...")
 	}
 	return nil
 }

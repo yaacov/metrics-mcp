@@ -44,7 +44,8 @@ ENV MCP_CERT_FILE="" \
 # Kubernetes authentication (optional - override via HTTP headers in HTTP mode)
 ENV MCP_KUBE_SERVER="" \
     MCP_KUBE_TOKEN="" \
-    MCP_KUBE_INSECURE=""
+    MCP_KUBE_INSECURE="" \
+    MCP_KUBE_CA_CERT=""
 
 # Prometheus/Thanos URL override (optional - auto-discovered from cluster if empty)
 ENV MCP_METRICS_URL=""
@@ -63,6 +64,7 @@ ENTRYPOINT ["/bin/sh", "-c", "\
     ${MCP_KUBE_SERVER:+--server \"${MCP_KUBE_SERVER}\"} \
     ${MCP_KUBE_TOKEN:+--token \"${MCP_KUBE_TOKEN}\"} \
     $([ \"${MCP_KUBE_INSECURE}\" = \"true\" ] && echo --insecure-skip-tls-verify) \
+    ${MCP_KUBE_CA_CERT:+--certificate-authority \"${MCP_KUBE_CA_CERT}\"} \
     ${MCP_METRICS_URL:+--url \"${MCP_METRICS_URL}\"}"]
 
 LABEL name="kubectl-metrics-mcp-server" \

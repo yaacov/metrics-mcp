@@ -121,7 +121,8 @@ The container image accepts these environment variables:
 | `MCP_KEY_FILE` | | TLS key path |
 | `MCP_KUBE_SERVER` | | K8s API server URL |
 | `MCP_KUBE_TOKEN` | | Bearer token |
-| `MCP_KUBE_INSECURE` | | Set `true` to skip TLS verify for K8s API |
+| `MCP_KUBE_INSECURE` | | Set `true` to skip TLS verification for upstream connections |
+| `MCP_KUBE_CA_CERT` | | Path to a CA certificate file for TLS verification |
 | `MCP_METRICS_URL` | | Prometheus URL override (skips auto-discovery) |
 
 ## Teardown

@@ -17,6 +17,12 @@ from typing import List
 
 BINARY = os.path.join(os.path.dirname(__file__), "..", "kubectl-metrics")
 
+# When set to a non-empty value, --insecure-skip-tls-verify is appended to
+# every invocation.  Useful for clusters whose Thanos/Prometheus routes use
+# certificates signed by an internal CA that is not in the system trust store
+# (the common case on OpenShift).
+INSECURE = os.environ.get("INSECURE_SKIP_TLS_VERIFY", "").lower() in ("1", "true", "yes")
+
 passed = 0
 failed = 0
 errors = []  # type: List[str]
@@ -28,9 +34,10 @@ errors = []  # type: List[str]
 
 def run(args):
     """Run the binary with the given args, return (stdout, stderr, returncode)."""
+    extra = ["--insecure-skip-tls-verify"] if INSECURE else []
     try:
         result = subprocess.run(
-            [BINARY] + args,
+            [BINARY] + extra + args,
             capture_output=True,
             text=True,
             timeout=60,
