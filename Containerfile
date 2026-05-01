@@ -44,7 +44,7 @@ ENV MCP_CERT_FILE="" \
 # Kubernetes authentication (optional - override via HTTP headers in HTTP mode)
 ENV MCP_KUBE_SERVER="" \
     MCP_KUBE_TOKEN="" \
-    MCP_KUBE_INSECURE="" \
+    MCP_KUBE_INSECURE="true" \
     MCP_KUBE_CA_CERT=""
 
 # Prometheus/Thanos URL override (optional - auto-discovered from cluster if empty)
